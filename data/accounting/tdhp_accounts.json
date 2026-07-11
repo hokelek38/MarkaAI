@@ -1,0 +1,366 @@
+{
+  "metadata": {
+    "name": "Tek Düzen Hesap Planı Bilgi Tabanı",
+    "version": "0.1.0",
+    "status": "development",
+    "last_reviewed": "2026-07-11",
+    "primary_basis": [
+      "1 Sıra No.lu Muhasebe Sistemi Uygulama Genel Tebliği",
+      "213 sayılı Vergi Usul Kanunu"
+    ],
+    "warning": "Bu veri tabanı muhasebe hesabı önerisi üretir. Mali müşavir onayı olmadan kesin kayıt veya dış programa aktarım yapılamaz."
+  },
+
+  "accounts": [
+    {
+      "code": "100",
+      "name": "Kasa",
+      "class": "1",
+      "group": "10",
+      "normal_balance": "debit",
+      "category": "current_asset",
+      "usage": "İşletmenin elinde bulunan Türk lirası ve yabancı para mevcudunun izlenmesinde kullanılır.",
+      "debit_rule": "Kasaya giren tutarlar borç kaydedilir.",
+      "credit_rule": "Kasadan çıkan tutarlar alacak kaydedilir.",
+      "allowed_document_types": [
+        "cash_receipt",
+        "cash_payment",
+        "collection",
+        "payment"
+      ],
+      "risk_flags": [
+        "negative_cash_balance",
+        "unusually_high_cash_balance"
+      ],
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "102",
+      "name": "Bankalar",
+      "class": "1",
+      "group": "10",
+      "normal_balance": "debit",
+      "category": "current_asset",
+      "usage": "İşletmenin banka hesaplarındaki para hareketlerinin izlenmesinde kullanılır.",
+      "debit_rule": "Banka hesabına giren tutarlar borç kaydedilir.",
+      "credit_rule": "Banka hesabından çıkan tutarlar alacak kaydedilir.",
+      "allowed_document_types": [
+        "bank_receipt",
+        "bank_payment",
+        "bank_statement"
+      ],
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "120",
+      "name": "Alıcılar",
+      "class": "1",
+      "group": "12",
+      "normal_balance": "debit",
+      "category": "trade_receivable",
+      "usage": "İşletmenin mal ve hizmet satışlarından doğan senetsiz ticari alacaklarının izlenmesinde kullanılır.",
+      "debit_rule": "Vadeli satışlardan doğan alacaklar borç kaydedilir.",
+      "credit_rule": "Tahsilatlar ve alacağı azaltan işlemler alacak kaydedilir.",
+      "allowed_document_types": [
+        "sales_invoice",
+        "sales_return",
+        "collection"
+      ],
+      "requires_customer": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "150",
+      "name": "İlk Madde ve Malzeme",
+      "class": "1",
+      "group": "15",
+      "normal_balance": "debit",
+      "category": "inventory",
+      "usage": "Üretimde kullanılmak üzere edinilen ilk madde, yardımcı madde, işletme malzemesi ve benzeri stokların izlenmesinde kullanılır.",
+      "debit_rule": "Satın alınan veya işletmeye giren ilk madde ve malzemeler maliyet bedeliyle borç kaydedilir.",
+      "credit_rule": "Üretime verilen, tüketilen, satılan veya çıkan malzemeler alacak kaydedilir.",
+      "allowed_document_types": [
+        "purchase_invoice",
+        "purchase_return",
+        "inventory_entry",
+        "production_consumption"
+      ],
+      "decision_conditions": [
+        "Ürün işletmenin üretim faaliyetinde kullanılmalıdır.",
+        "Ürün doğrudan tekrar satış amacıyla alınmamış olmalıdır.",
+        "Ürün uzun süreli kullanım için edinilen sabit kıymet niteliğinde olmamalıdır."
+      ],
+      "alternative_accounts": [
+        "153",
+        "253",
+        "255",
+        "740",
+        "770"
+      ],
+      "requires_company_activity": true,
+      "requires_usage_purpose": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "153",
+      "name": "Ticari Mallar",
+      "class": "1",
+      "group": "15",
+      "normal_balance": "debit",
+      "category": "inventory",
+      "usage": "Herhangi bir değişikliğe tabi tutulmadan satılmak amacıyla edinilen ticari malların izlenmesinde kullanılır.",
+      "debit_rule": "Satılmak amacıyla alınan ticari mallar maliyet bedeliyle borç kaydedilir.",
+      "credit_rule": "Satılan, iade edilen veya stoktan çıkan mallar alacak kaydedilir.",
+      "allowed_document_types": [
+        "purchase_invoice",
+        "purchase_return",
+        "inventory_entry"
+      ],
+      "decision_conditions": [
+        "Mal yeniden satış amacıyla edinilmiş olmalıdır.",
+        "Mal üretimde hammadde olarak kullanılmamalıdır.",
+        "Mal sabit kıymet olarak işletmede kullanılmamalıdır."
+      ],
+      "alternative_accounts": [
+        "150",
+        "152",
+        "255"
+      ],
+      "requires_company_activity": true,
+      "requires_usage_purpose": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "191",
+      "name": "İndirilecek KDV",
+      "class": "1",
+      "group": "19",
+      "normal_balance": "debit",
+      "category": "vat_receivable",
+      "usage": "Alış belgelerinde hesaplanan ve indirim konusu yapılması mümkün olan KDV'nin izlenmesinde kullanılır.",
+      "debit_rule": "İndirim hakkı bulunan alış KDV'si borç kaydedilir.",
+      "credit_rule": "Dönem sonu mahsup, iade veya düzeltme işlemleri alacak kaydedilir.",
+      "allowed_document_types": [
+        "purchase_invoice",
+        "purchase_return",
+        "expense_invoice"
+      ],
+      "validation_rules": [
+        "Belge alış veya gider belgesi olmalıdır.",
+        "KDV indirim şartları ayrıca kontrol edilmelidir.",
+        "Matrah ile KDV oranı ve KDV tutarı matematiksel olarak doğrulanmalıdır.",
+        "İndirimi mümkün olmayan KDV doğrudan bu hesaba önerilmemelidir."
+      ],
+      "requires_vat_validation": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "255",
+      "name": "Demirbaşlar",
+      "class": "2",
+      "group": "25",
+      "normal_balance": "debit",
+      "category": "fixed_asset",
+      "usage": "İşletme faaliyetlerinde kullanılmak üzere edinilen büro makinesi, mobilya ve benzeri maddi duran varlıkların izlenmesinde kullanılır.",
+      "debit_rule": "Edinilen demirbaşlar maliyet bedeliyle borç kaydedilir.",
+      "credit_rule": "Satılan, devredilen veya kullanımdan çıkarılan demirbaşların kayıtlı değeri alacak kaydedilir.",
+      "decision_conditions": [
+        "Kıymet işletmede birden fazla dönemde kullanılmalıdır.",
+        "Kıymet satış amacıyla edinilmemiş olmalıdır.",
+        "Aktifleştirme ve amortisman şartları ayrıca kontrol edilmelidir."
+      ],
+      "alternative_accounts": [
+        "153",
+        "253",
+        "770"
+      ],
+      "requires_fixed_asset_validation": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "320",
+      "name": "Satıcılar",
+      "class": "3",
+      "group": "32",
+      "normal_balance": "credit",
+      "category": "trade_payable",
+      "usage": "İşletmenin faaliyet konusu ile ilgili mal ve hizmet alımlarından doğan senetsiz ticari borçlarının izlenmesinde kullanılır.",
+      "debit_rule": "Ödemeler, iadeler ve borcu azaltan işlemler borç kaydedilir.",
+      "credit_rule": "Vadeli mal ve hizmet alımlarından doğan borçlar alacak kaydedilir.",
+      "allowed_document_types": [
+        "purchase_invoice",
+        "purchase_return",
+        "payment"
+      ],
+      "requires_supplier": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "391",
+      "name": "Hesaplanan KDV",
+      "class": "3",
+      "group": "39",
+      "normal_balance": "credit",
+      "category": "vat_payable",
+      "usage": "Teslim ve hizmetler üzerinden hesaplanan KDV'nin izlenmesinde kullanılır.",
+      "debit_rule": "Dönem sonu mahsup, iade ve düzeltmeler borç kaydedilir.",
+      "credit_rule": "Vergiye tabi satışlar üzerinden hesaplanan KDV alacak kaydedilir.",
+      "allowed_document_types": [
+        "sales_invoice",
+        "sales_return"
+      ],
+      "validation_rules": [
+        "Belge satış veya hizmet teslim belgesi olmalıdır.",
+        "Matrah, oran ve KDV tutarı doğrulanmalıdır.",
+        "İstisna, tevkifat ve özel matrah işlemleri ayrıca değerlendirilmelidir."
+      ],
+      "requires_vat_validation": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "600",
+      "name": "Yurt İçi Satışlar",
+      "class": "6",
+      "group": "60",
+      "normal_balance": "credit",
+      "category": "revenue",
+      "usage": "Yurt içindeki gerçek ve tüzel kişilere yapılan mal ve hizmet satışlarından elde edilen gelirlerin izlenmesinde kullanılır.",
+      "credit_rule": "Yurt içi satış hasılatı alacak kaydedilir.",
+      "debit_rule": "Satış iptalleri ve hesabı azaltan düzeltmeler borç kaydedilir.",
+      "allowed_document_types": [
+        "sales_invoice",
+        "sales_return"
+      ],
+      "requires_sales_validation": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "740",
+      "name": "Hizmet Üretim Maliyeti",
+      "class": "7",
+      "group": "74",
+      "normal_balance": "debit",
+      "category": "service_production_cost",
+      "usage": "Hizmet işletmelerinde üretilen hizmetler için yapılan giderlerin fiili tutarlarının izlenmesinde kullanılır.",
+      "decision_conditions": [
+        "İşletme hizmet üretimi faaliyeti yürütmelidir.",
+        "Gider doğrudan üretilen hizmetle ilişkili olmalıdır.",
+        "Genel yönetim gideri niteliğinde olmamalıdır."
+      ],
+      "alternative_accounts": [
+        "760",
+        "770"
+      ],
+      "requires_company_activity": true,
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "760",
+      "name": "Pazarlama Satış ve Dağıtım Giderleri",
+      "class": "7",
+      "group": "76",
+      "normal_balance": "debit",
+      "category": "selling_expense",
+      "usage": "Mal ve hizmetlerin pazarlanması, satışı ve dağıtımıyla ilgili giderlerin izlenmesinde kullanılır.",
+      "decision_conditions": [
+        "Gider satış, pazarlama veya dağıtım faaliyetiyle ilişkili olmalıdır.",
+        "Üretim veya genel yönetim gideri niteliğinde olmamalıdır."
+      ],
+      "alternative_accounts": [
+        "740",
+        "770"
+      ],
+      "requires_user_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "code": "770",
+      "name": "Genel Yönetim Giderleri",
+      "class": "7",
+      "group": "77",
+      "normal_balance": "debit",
+      "category": "administrative_expense",
+      "usage": "İşletmenin genel yönetim faaliyetlerine ilişkin giderlerin izlenmesinde kullanılır.",
+      "decision_conditions": [
+        "Gider doğrudan üretimle ilişkili olmamalıdır.",
+        "Gider doğrudan satış ve dağıtım faaliyetiyle ilişkili olmamalıdır.",
+        "Gider aktifleştirilmesi gereken bir kıymete ait olmamalıdır."
+      ],
+      "alternative_accounts": [
+        "740",
+        "760",
+        "255"
+      ],
+      "requires_user_confirmation": true,
+      "verified": false
+    }
+  ],
+
+  "voucher_validation_rules": [
+    {
+      "rule_id": "V001",
+      "name": "Borç alacak eşitliği",
+      "description": "Fişteki toplam borç ile toplam alacak birbirine eşit olmalıdır.",
+      "severity": "error",
+      "blocks_export": true
+    },
+    {
+      "rule_id": "V002",
+      "name": "Belge numarası kontrolü",
+      "description": "Fatura numarası boş olmamalı ve aynı firmada mükerrer kayda karşı kontrol edilmelidir.",
+      "severity": "error",
+      "blocks_export": true
+    },
+    {
+      "rule_id": "V003",
+      "name": "Belge tarihi kontrolü",
+      "description": "Belge tarihi geçerli olmalı ve kayıt dönemiyle uyumu kontrol edilmelidir.",
+      "severity": "error",
+      "blocks_export": true
+    },
+    {
+      "rule_id": "V004",
+      "name": "KDV matematik kontrolü",
+      "description": "Matrah, oran ve KDV tutarı arasında matematiksel uyum bulunmalıdır.",
+      "severity": "error",
+      "blocks_export": true
+    },
+    {
+      "rule_id": "V005",
+      "name": "Hesap kullanım amacı kontrolü",
+      "description": "Önerilen hesap işletmenin faaliyet konusu ve alınan mal veya hizmetin kullanım amacıyla uyumlu olmalıdır.",
+      "severity": "warning",
+      "blocks_export": false
+    },
+    {
+      "rule_id": "V006",
+      "name": "Mali müşavir onayı",
+      "description": "Otomatik oluşturulan muhasebe fişi yetkili kullanıcı tarafından onaylanmadan kesinleştirilemez.",
+      "severity": "error",
+      "blocks_export": true
+    }
+  ]
+}

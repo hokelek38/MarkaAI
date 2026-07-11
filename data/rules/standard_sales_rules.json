@@ -1,0 +1,409 @@
+{
+  "metadata": {
+    "name": "MarkaAI Standart Satış Muhasebe Kuralları",
+    "version": "0.1.0",
+    "status": "development",
+    "last_reviewed": "2026-07-11",
+    "description": "Standart yurt içi mal ve hizmet satış faturaları için açıklanabilir muhasebe fişi öneri kuralları.",
+    "primary_basis": [
+      "1 Sıra No.lu Muhasebe Sistemi Uygulama Genel Tebliği",
+      "3065 sayılı Katma Değer Vergisi Kanunu",
+      "Katma Değer Vergisi Genel Uygulama Tebliği"
+    ],
+    "warning": "Bu kurallar yalnızca standart KDV'li yurt içi satış işlemlerinde kullanılabilir. Tevkifat, istisna, ihracat, ihraç kayıtlı teslim, iade, özel matrah ve benzeri özel işlemlere uygulanamaz. Mali müşavir onayı olmadan kayıt kesinleştirilemez."
+  },
+
+  "rules": [
+    {
+      "rule_id": "STANDARD_SALE_CREDIT_GOODS",
+      "priority": 100,
+      "enabled": true,
+      "description": "Vadeli yurt içi ticari mal veya mamul satışı",
+      "transaction_codes": [
+        "STANDARD_SALE"
+      ],
+      "conditions": {
+        "direction": [
+          "sale"
+        ],
+        "tax_scenario": [
+          "standard_vat"
+        ],
+        "payment_type": [
+          "credit"
+        ],
+        "sale_content_type": [
+          "goods",
+          "trade_goods",
+          "finished_goods"
+        ]
+      },
+      "entries": {
+        "debit": [
+          {
+            "account": "120",
+            "amount_source": "total_amount",
+            "description": "Müşteriden doğan senetsiz ticari alacak"
+          }
+        ],
+        "credit": [
+          {
+            "account": "600",
+            "amount_source": "subtotal",
+            "description": "Yurt içi satış hasılatı"
+          },
+          {
+            "account": "391",
+            "amount_source": "vat_amount",
+            "description": "Satış üzerinden hesaplanan KDV",
+            "include_when": {
+              "vat_amount_positive": true
+            }
+          }
+        ]
+      },
+      "confidence": 95,
+      "requires_customer": true,
+      "requires_payment_type_confirmation": true,
+      "requires_vat_validation": true,
+      "requires_professional_approval": true
+    },
+
+    {
+      "rule_id": "STANDARD_SALE_CREDIT_SERVICE",
+      "priority": 100,
+      "enabled": true,
+      "description": "Vadeli yurt içi hizmet satışı",
+      "transaction_codes": [
+        "STANDARD_SALE"
+      ],
+      "conditions": {
+        "direction": [
+          "sale"
+        ],
+        "tax_scenario": [
+          "standard_vat"
+        ],
+        "payment_type": [
+          "credit"
+        ],
+        "sale_content_type": [
+          "service"
+        ]
+      },
+      "entries": {
+        "debit": [
+          {
+            "account": "120",
+            "amount_source": "total_amount",
+            "description": "Müşteriden doğan senetsiz ticari alacak"
+          }
+        ],
+        "credit": [
+          {
+            "account": "600",
+            "amount_source": "subtotal",
+            "description": "Yurt içi hizmet satış hasılatı"
+          },
+          {
+            "account": "391",
+            "amount_source": "vat_amount",
+            "description": "Hizmet satışı üzerinden hesaplanan KDV",
+            "include_when": {
+              "vat_amount_positive": true
+            }
+          }
+        ]
+      },
+      "confidence": 95,
+      "requires_customer": true,
+      "requires_payment_type_confirmation": true,
+      "requires_vat_validation": true,
+      "requires_professional_approval": true
+    },
+
+    {
+      "rule_id": "STANDARD_SALE_CASH",
+      "priority": 95,
+      "enabled": true,
+      "description": "Nakit tahsil edilen standart yurt içi satış",
+      "transaction_codes": [
+        "STANDARD_SALE"
+      ],
+      "conditions": {
+        "direction": [
+          "sale"
+        ],
+        "tax_scenario": [
+          "standard_vat"
+        ],
+        "payment_type": [
+          "cash"
+        ]
+      },
+      "entries": {
+        "debit": [
+          {
+            "account": "100",
+            "amount_source": "total_amount",
+            "description": "Nakit tahsil edilen satış bedeli"
+          }
+        ],
+        "credit": [
+          {
+            "account": "600",
+            "amount_source": "subtotal",
+            "description": "Yurt içi satış hasılatı"
+          },
+          {
+            "account": "391",
+            "amount_source": "vat_amount",
+            "description": "Satış üzerinden hesaplanan KDV",
+            "include_when": {
+              "vat_amount_positive": true
+            }
+          }
+        ]
+      },
+      "confidence": 92,
+      "requires_cash_collection_confirmation": true,
+      "requires_vat_validation": true,
+      "requires_professional_approval": true
+    },
+
+    {
+      "rule_id": "STANDARD_SALE_BANK",
+      "priority": 95,
+      "enabled": true,
+      "description": "Banka yoluyla anında tahsil edilen standart yurt içi satış",
+      "transaction_codes": [
+        "STANDARD_SALE"
+      ],
+      "conditions": {
+        "direction": [
+          "sale"
+        ],
+        "tax_scenario": [
+          "standard_vat"
+        ],
+        "payment_type": [
+          "bank"
+        ]
+      },
+      "entries": {
+        "debit": [
+          {
+            "account": "102",
+            "amount_source": "total_amount",
+            "description": "Banka hesabına tahsil edilen satış bedeli"
+          }
+        ],
+        "credit": [
+          {
+            "account": "600",
+            "amount_source": "subtotal",
+            "description": "Yurt içi satış hasılatı"
+          },
+          {
+            "account": "391",
+            "amount_source": "vat_amount",
+            "description": "Satış üzerinden hesaplanan KDV",
+            "include_when": {
+              "vat_amount_positive": true
+            }
+          }
+        ]
+      },
+      "confidence": 92,
+      "requires_bank_collection_confirmation": true,
+      "requires_vat_validation": true,
+      "requires_professional_approval": true
+    },
+
+    {
+      "rule_id": "STANDARD_SALE_CARD_RECEIVABLE",
+      "priority": 90,
+      "enabled": true,
+      "description": "Banka kartı veya kredi kartıyla yapılan standart yurt içi satış",
+      "transaction_codes": [
+        "STANDARD_SALE"
+      ],
+      "conditions": {
+        "direction": [
+          "sale"
+        ],
+        "tax_scenario": [
+          "standard_vat"
+        ],
+        "payment_type": [
+          "credit_card",
+          "debit_card",
+          "pos"
+        ]
+      },
+      "entries": {
+        "debit": [
+          {
+            "account_policy_key": "pos_receivable_account",
+            "fallback_account": "120",
+            "amount_source": "total_amount",
+            "description": "POS veya kartlı satıştan doğan banka alacağı"
+          }
+        ],
+        "credit": [
+          {
+            "account": "600",
+            "amount_source": "subtotal",
+            "description": "Yurt içi satış hasılatı"
+          },
+          {
+            "account": "391",
+            "amount_source": "vat_amount",
+            "description": "Satış üzerinden hesaplanan KDV",
+            "include_when": {
+              "vat_amount_positive": true
+            }
+          }
+        ]
+      },
+      "confidence": 82,
+      "requires_company_account_policy": true,
+      "requires_pos_settlement_check": true,
+      "requires_vat_validation": true,
+      "requires_professional_approval": true
+    },
+
+    {
+      "rule_id": "STANDARD_SALE_MIXED_COLLECTION",
+      "priority": 80,
+      "enabled": true,
+      "description": "Birden fazla yöntemle tahsil edilen standart yurt içi satış",
+      "transaction_codes": [
+        "STANDARD_SALE"
+      ],
+      "conditions": {
+        "direction": [
+          "sale"
+        ],
+        "tax_scenario": [
+          "standard_vat"
+        ],
+        "payment_type": [
+          "mixed"
+        ]
+      },
+      "entries": {
+        "debit": [
+          {
+            "dynamic_split": true,
+            "allowed_accounts": [
+              "100",
+              "102",
+              "120"
+            ],
+            "amount_source": "collection_breakdown",
+            "description": "Tahsilat dağılımına göre kasa, banka ve alıcı hesapları"
+          }
+        ],
+        "credit": [
+          {
+            "account": "600",
+            "amount_source": "subtotal",
+            "description": "Yurt içi satış hasılatı"
+          },
+          {
+            "account": "391",
+            "amount_source": "vat_amount",
+            "description": "Satış üzerinden hesaplanan KDV",
+            "include_when": {
+              "vat_amount_positive": true
+            }
+          }
+        ]
+      },
+      "confidence": 75,
+      "requires_collection_breakdown": true,
+      "requires_vat_validation": true,
+      "requires_professional_approval": true
+    }
+  ],
+
+  "validation_rules": [
+    {
+      "validation_id": "SALE_V001",
+      "name": "Standart satış işlem türü kontrolü",
+      "description": "Bu kural dosyası yalnızca STANDARD_SALE işlem türünde çalıştırılmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "SALE_V002",
+      "name": "Özel vergi senaryosu kontrolü",
+      "description": "Tevkifat, istisna, ihracat, ihraç kayıtlı teslim, iade veya özel matrah işareti varsa standart satış kuralları durdurulmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "SALE_V003",
+      "name": "Satış yönü kontrolü",
+      "description": "Belgenin işletme açısından satış yönünde olduğu doğrulanmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "SALE_V004",
+      "name": "Müşteri kontrolü",
+      "description": "Vadeli satışta müşteri kartı ve VKN/TCKN bilgisi kontrol edilmelidir.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "SALE_V005",
+      "name": "KDV matematik kontrolü",
+      "description": "Matrah, KDV oranı, hesaplanan KDV ve genel toplam matematiksel olarak uyumlu olmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "SALE_V006",
+      "name": "Borç alacak eşitliği",
+      "description": "Fişin toplam borç ve alacak tutarları eşit olmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "SALE_V007",
+      "name": "Ödeme şekli kontrolü",
+      "description": "100, 102 veya 120 hesabı belge üzerindeki bilgiye göre değil, gerçek tahsilat durumuna göre seçilmelidir.",
+      "severity": "warning",
+      "blocks_voucher": false
+    },
+    {
+      "validation_id": "SALE_V008",
+      "name": "Mükerrer fatura kontrolü",
+      "description": "Firma, müşteri, fatura numarası ve tarih bilgileriyle mükerrer kayıt kontrolü yapılmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "SALE_V009",
+      "name": "Mali müşavir onayı",
+      "description": "Önerilen satış fişi mali müşavir onayından önce kesinleştirilemez veya dış programa aktarılamaz.",
+      "severity": "error",
+      "blocks_voucher": true
+    }
+  ],
+
+  "cost_record_policy": {
+    "included_in_sales_voucher": false,
+    "description": "Satılan ticari mal veya mamulün maliyet kaydı bu ilk sürümde satış hasılat fişinden ayrı tutulur.",
+    "future_accounts": [
+      "620",
+      "621",
+      "622",
+      "152",
+      "153"
+    ],
+    "warning": "Maliyet kaydı, stok yöntemi, üretim yapısı, stok hareketleri ve dönemsel maliyet politikası doğrulanmadan otomatik oluşturulmamalıdır."
+  }
+}

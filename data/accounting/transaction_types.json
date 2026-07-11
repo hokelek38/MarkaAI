@@ -1,0 +1,452 @@
+{
+  "metadata": {
+    "name": "MarkaAI Muhasebe İşlem Türleri",
+    "version": "0.1.0",
+    "status": "development",
+    "last_reviewed": "2026-07-11",
+    "description": "Belgelerin muhasebe ve vergi senaryolarına göre sınıflandırılmasını sağlayan merkezi işlem türleri bilgi tabanı.",
+    "warning": "Bu tanımlar tek başına kesin muhasebe kaydı oluşturmaz. Güncel mevzuat, belge içeriği, firma profili ve mali müşavir onayı birlikte değerlendirilmelidir."
+  },
+
+  "transaction_types": [
+    {
+      "transaction_code": "STANDARD_PURCHASE",
+      "name": "Standart Alış Faturası",
+      "direction": "purchase",
+      "document_family": "invoice",
+      "tax_scenario": "standard_vat",
+      "description": "Mal veya hizmet alımına ilişkin standart KDV'li alış işlemi.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "seller_tax_number",
+        "subtotal",
+        "vat_amount",
+        "payable_amount"
+      ],
+      "possible_debit_accounts": [
+        "150",
+        "153",
+        "191",
+        "255",
+        "740",
+        "760",
+        "770"
+      ],
+      "possible_credit_accounts": [
+        "100",
+        "102",
+        "320"
+      ],
+      "validation_groups": [
+        "document",
+        "vat",
+        "supplier",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "STANDARD_SALE",
+      "name": "Standart Satış Faturası",
+      "direction": "sale",
+      "document_family": "invoice",
+      "tax_scenario": "standard_vat",
+      "description": "Yurt içi mal veya hizmet satışına ilişkin standart KDV'li satış işlemi.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "buyer_tax_number",
+        "subtotal",
+        "vat_amount",
+        "total_amount"
+      ],
+      "possible_debit_accounts": [
+        "100",
+        "102",
+        "120"
+      ],
+      "possible_credit_accounts": [
+        "600",
+        "391"
+      ],
+      "validation_groups": [
+        "document",
+        "vat",
+        "customer",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "PURCHASE_RETURN",
+      "name": "Alış İade Faturası",
+      "direction": "purchase_return",
+      "document_family": "return_invoice",
+      "tax_scenario": "standard_vat_return",
+      "description": "Daha önce alınan mal veya hizmetin satıcıya iadesine ilişkin işlem.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "seller_tax_number",
+        "original_invoice_number",
+        "subtotal",
+        "vat_amount",
+        "total_amount"
+      ],
+      "validation_groups": [
+        "document",
+        "original_document",
+        "vat",
+        "supplier",
+        "voucher_balance"
+      ],
+      "requires_original_invoice": true,
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "SALES_RETURN",
+      "name": "Satış İade Faturası",
+      "direction": "sales_return",
+      "document_family": "return_invoice",
+      "tax_scenario": "standard_vat_return",
+      "description": "Daha önce satılan mal veya hizmetin müşteri tarafından iadesine ilişkin işlem.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "buyer_tax_number",
+        "original_invoice_number",
+        "subtotal",
+        "vat_amount",
+        "total_amount"
+      ],
+      "validation_groups": [
+        "document",
+        "original_document",
+        "vat",
+        "customer",
+        "voucher_balance"
+      ],
+      "requires_original_invoice": true,
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "WITHHOLDING_PURCHASE",
+      "name": "Tevkifatlı Alış Faturası",
+      "direction": "purchase",
+      "document_family": "invoice",
+      "tax_scenario": "partial_withholding",
+      "description": "Alıcının KDV'nin belirli kısmını sorumlu sıfatıyla beyan ettiği tevkifatlı alış işlemi.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "seller_tax_number",
+        "subtotal",
+        "vat_rate",
+        "vat_amount",
+        "withholding_code",
+        "withholding_numerator",
+        "withholding_denominator",
+        "withheld_vat_amount",
+        "seller_collected_vat_amount",
+        "payable_amount"
+      ],
+      "tax_fields": {
+        "requires_withholding_code": true,
+        "requires_withholding_ratio": true,
+        "requires_buyer_responsibility_check": true,
+        "requires_current_threshold_check": true,
+        "requires_vat2_assessment": true
+      },
+      "validation_groups": [
+        "document",
+        "vat",
+        "withholding",
+        "supplier",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "WITHHOLDING_SALE",
+      "name": "Tevkifatlı Satış Faturası",
+      "direction": "sale",
+      "document_family": "invoice",
+      "tax_scenario": "partial_withholding",
+      "description": "Hesaplanan KDV'nin belirli kısmının alıcı tarafından tevkif edildiği satış işlemi.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "buyer_tax_number",
+        "subtotal",
+        "vat_rate",
+        "vat_amount",
+        "withholding_code",
+        "withholding_numerator",
+        "withholding_denominator",
+        "withheld_vat_amount",
+        "seller_collected_vat_amount",
+        "payable_amount"
+      ],
+      "tax_fields": {
+        "requires_withholding_code": true,
+        "requires_withholding_ratio": true,
+        "requires_buyer_responsibility_check": true,
+        "requires_current_threshold_check": true,
+        "requires_vat1_assessment": true
+      },
+      "validation_groups": [
+        "document",
+        "vat",
+        "withholding",
+        "customer",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "EXPORT_REGISTERED_SALE",
+      "name": "İhraç Kayıtlı Satış",
+      "direction": "sale",
+      "document_family": "invoice",
+      "tax_scenario": "export_registered",
+      "legal_reference": "KDVK 11/1-c",
+      "description": "İmalatçı tarafından ihracatçıya ihraç edilmek şartıyla yapılan ve KDV'si hesaplanmakla birlikte ihracatçıdan tahsil edilmeyen teslim.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "buyer_tax_number",
+        "subtotal",
+        "vat_rate",
+        "vat_amount",
+        "payable_amount",
+        "manufacturer_status",
+        "exporter_status",
+        "export_commitment"
+      ],
+      "tax_fields": {
+        "vat_calculated": true,
+        "vat_collected_from_buyer": false,
+        "requires_deferment_cancellation_tracking": true,
+        "requires_export_deadline_tracking": true,
+        "requires_export_document": true
+      },
+      "tracking_fields": [
+        "delivery_date",
+        "export_deadline",
+        "customs_declaration_number",
+        "actual_export_date",
+        "export_completed",
+        "additional_time_granted",
+        "deferred_vat_amount",
+        "cancelled_vat_amount",
+        "refund_vat_amount"
+      ],
+      "validation_groups": [
+        "document",
+        "vat",
+        "manufacturer",
+        "exporter",
+        "export_registered",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "EXPORT_REGISTERED_PURCHASE",
+      "name": "İhraç Kayıtlı Alış",
+      "direction": "purchase",
+      "document_family": "invoice",
+      "tax_scenario": "export_registered",
+      "description": "İhracatçının imalatçıdan ihraç kayıtlı olarak aldığı mala ilişkin alış işlemi.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "seller_tax_number",
+        "subtotal",
+        "vat_rate",
+        "vat_amount",
+        "payable_amount",
+        "manufacturer_status",
+        "export_commitment"
+      ],
+      "tax_fields": {
+        "vat_calculated": true,
+        "vat_paid_to_seller": false,
+        "requires_export_deadline_tracking": true,
+        "requires_export_document": true
+      },
+      "tracking_fields": [
+        "delivery_date",
+        "export_deadline",
+        "customs_declaration_number",
+        "actual_export_date",
+        "export_completed",
+        "additional_time_granted"
+      ],
+      "validation_groups": [
+        "document",
+        "vat",
+        "manufacturer",
+        "export_registered",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "DIRECT_EXPORT_SALE",
+      "name": "Doğrudan İhracat Satışı",
+      "direction": "sale",
+      "document_family": "export_invoice",
+      "tax_scenario": "export_exemption",
+      "legal_reference": "KDVK 11/1-a ve 12",
+      "description": "Yurt dışındaki müşteriye yapılan ve ihracat teslimi şartlarını sağlayan satış işlemi.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "buyer_country",
+        "subtotal",
+        "currency",
+        "exchange_rate"
+      ],
+      "tracking_fields": [
+        "customs_declaration_number",
+        "actual_export_date",
+        "export_completed"
+      ],
+      "validation_groups": [
+        "document",
+        "export",
+        "exemption",
+        "currency",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "IMPORT_PURCHASE",
+      "name": "İthalat Alışı",
+      "direction": "purchase",
+      "document_family": "import_document",
+      "tax_scenario": "import_vat",
+      "description": "Yurt dışından mal ithaline ilişkin alış ve gümrük vergilendirme işlemi.",
+      "required_fields": [
+        "supplier_name",
+        "supplier_country",
+        "customs_declaration_number",
+        "customs_date",
+        "foreign_currency_amount",
+        "currency",
+        "exchange_rate",
+        "customs_value",
+        "import_vat_amount"
+      ],
+      "validation_groups": [
+        "document",
+        "customs",
+        "currency",
+        "import_vat",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "VAT_EXEMPT_PURCHASE",
+      "name": "KDV İstisnalı Alış",
+      "direction": "purchase",
+      "document_family": "invoice",
+      "tax_scenario": "vat_exemption",
+      "description": "Faturada KDV hesaplanmayan ve istisna kodu bulunan alış işlemi.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "seller_tax_number",
+        "subtotal",
+        "exemption_code",
+        "exemption_reason"
+      ],
+      "validation_groups": [
+        "document",
+        "exemption",
+        "supplier",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "VAT_EXEMPT_SALE",
+      "name": "KDV İstisnalı Satış",
+      "direction": "sale",
+      "document_family": "invoice",
+      "tax_scenario": "vat_exemption",
+      "description": "KDV hesaplanmaksızın düzenlenen ve geçerli istisna koduna dayanan satış işlemi.",
+      "required_fields": [
+        "invoice_number",
+        "invoice_date",
+        "buyer_tax_number",
+        "subtotal",
+        "exemption_code",
+        "exemption_reason"
+      ],
+      "validation_groups": [
+        "document",
+        "exemption",
+        "customer",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    },
+
+    {
+      "transaction_code": "SELF_EMPLOYMENT_WITHHOLDING",
+      "name": "Stopajlı Serbest Meslek İşlemi",
+      "direction": "purchase",
+      "document_family": "self_employment_receipt",
+      "tax_scenario": "income_tax_withholding",
+      "description": "Serbest meslek makbuzu kapsamında gelir vergisi stopajı ve KDV unsurları bulunan işlem.",
+      "required_fields": [
+        "document_number",
+        "document_date",
+        "service_provider_tax_number",
+        "gross_amount",
+        "withholding_rate",
+        "withholding_amount",
+        "vat_rate",
+        "vat_amount",
+        "net_payable_amount"
+      ],
+      "validation_groups": [
+        "document",
+        "income_tax_withholding",
+        "vat",
+        "supplier",
+        "voucher_balance"
+      ],
+      "requires_user_confirmation": true,
+      "enabled": true
+    }
+  ]
+}

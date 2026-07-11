@@ -1,0 +1,411 @@
+{
+  "metadata": {
+    "name": "MarkaAI Ürün ve Hizmet Bilgi Tabanı",
+    "version": "0.1.0",
+    "status": "development",
+    "last_updated": "2026-07-11",
+    "description": "Ürün ve hizmetlerin firma faaliyet türüne ve kullanım amacına göre sınıflandırılmasını destekleyen bilgi tabanı.",
+    "warning": "Ürün bilgisi tek başına muhasebe hesabı belirlemez. Firma faaliyeti, kullanım amacı, belge türü ve mali müşavir onayı birlikte değerlendirilmelidir."
+  },
+
+  "items": [
+    {
+      "product_id": "wood_mdf",
+      "name": "MDF",
+      "item_type": "material",
+      "keywords": [
+        "mdf",
+        "mdf levha",
+        "mdf plaka"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "manufacturing",
+          "usage": "production",
+          "suggested_account": "150",
+          "confidence": 92,
+          "reason": "İmalat işletmesinde üretimde kullanılabilecek ilk madde veya malzeme niteliğindedir."
+        },
+        {
+          "activity_type": "trading",
+          "usage": "resale",
+          "suggested_account": "153",
+          "confidence": 88,
+          "reason": "Alım-satım işletmesinde değişikliğe tabi tutulmadan yeniden satılabilir."
+        }
+      ],
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "wood_chipboard",
+      "name": "Sunta",
+      "item_type": "material",
+      "keywords": [
+        "sunta",
+        "sunta levha",
+        "yonga levha"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "manufacturing",
+          "usage": "production",
+          "suggested_account": "150",
+          "confidence": 92,
+          "reason": "İmalat işletmesinde üretimde kullanılabilecek malzeme niteliğindedir."
+        },
+        {
+          "activity_type": "trading",
+          "usage": "resale",
+          "suggested_account": "153",
+          "confidence": 88,
+          "reason": "Alım-satım işletmesinde yeniden satış amacıyla alınabilir."
+        }
+      ],
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "wood_timber",
+      "name": "Kereste",
+      "item_type": "material",
+      "keywords": [
+        "kereste",
+        "çam kereste",
+        "kayın kereste",
+        "meşe kereste"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "manufacturing",
+          "usage": "production",
+          "suggested_account": "150",
+          "confidence": 94,
+          "reason": "Üretim faaliyetinde hammadde olarak kullanılabilir."
+        },
+        {
+          "activity_type": "trading",
+          "usage": "resale",
+          "suggested_account": "153",
+          "confidence": 90,
+          "reason": "Ticaret işletmesinde yeniden satılmak üzere edinilebilir."
+        }
+      ],
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "furniture_leg",
+      "name": "Mobilya Ayağı",
+      "item_type": "component",
+      "keywords": [
+        "mobilya ayağı",
+        "torna ayak",
+        "ahşap torna ayak",
+        "koltuk ayağı"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "manufacturing",
+          "usage": "production",
+          "suggested_account": "150",
+          "confidence": 94,
+          "reason": "Mobilya imalatında ürüne doğrudan katılan parça niteliğinde olabilir."
+        },
+        {
+          "activity_type": "trading",
+          "usage": "resale",
+          "suggested_account": "153",
+          "confidence": 89,
+          "reason": "Alım-satım işletmesinde yeniden satış amacıyla alınabilir."
+        }
+      ],
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "computer_laptop",
+      "name": "Dizüstü Bilgisayar",
+      "item_type": "equipment",
+      "keywords": [
+        "laptop",
+        "dizüstü bilgisayar",
+        "notebook bilgisayar"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "trading",
+          "usage": "resale",
+          "suggested_account": "153",
+          "confidence": 86,
+          "reason": "Bilgisayar ticareti yapan işletmede yeniden satış amacıyla alınabilir."
+        },
+        {
+          "activity_type": "manufacturing",
+          "usage": "fixed_asset",
+          "suggested_account": "255",
+          "confidence": 78,
+          "reason": "İşletme faaliyetlerinde birden fazla dönemde kullanılacak demirbaş niteliğinde olabilir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "fixed_asset",
+          "suggested_account": "255",
+          "confidence": 82,
+          "reason": "Hizmet işletmesinde uzun süre kullanılacak demirbaş niteliğinde olabilir."
+        }
+      ],
+      "requires_fixed_asset_validation": true,
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "printer",
+      "name": "Yazıcı",
+      "item_type": "equipment",
+      "keywords": [
+        "yazıcı",
+        "lazer yazıcı",
+        "inkjet yazıcı",
+        "çok fonksiyonlu yazıcı"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "trading",
+          "usage": "resale",
+          "suggested_account": "153",
+          "confidence": 84,
+          "reason": "Yazıcı ticareti yapan işletmede yeniden satış amacıyla alınabilir."
+        },
+        {
+          "activity_type": "manufacturing",
+          "usage": "fixed_asset",
+          "suggested_account": "255",
+          "confidence": 76,
+          "reason": "İşletmede uzun süre kullanılacak demirbaş niteliğinde olabilir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "fixed_asset",
+          "suggested_account": "255",
+          "confidence": 80,
+          "reason": "Hizmet işletmesinde uzun süre kullanılacak demirbaş niteliğinde olabilir."
+        }
+      ],
+      "requires_fixed_asset_validation": true,
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "electricity_service",
+      "name": "Elektrik Tüketimi",
+      "item_type": "service",
+      "keywords": [
+        "elektrik faturası",
+        "elektrik tüketimi",
+        "elektrik bedeli"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "manufacturing",
+          "usage": "production",
+          "suggested_account": "730",
+          "confidence": 62,
+          "reason": "Üretim tesisinde üretim faaliyetiyle doğrudan ilişkili olabilir."
+        },
+        {
+          "activity_type": "manufacturing",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 55,
+          "reason": "İdari bölümlere ait tüketim genel yönetim gideri olabilir."
+        },
+        {
+          "activity_type": "trading",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 68,
+          "reason": "Genel işletme ve idari faaliyetlerle ilişkili olabilir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "service_production",
+          "suggested_account": "740",
+          "confidence": 62,
+          "reason": "Hizmet üretimiyle doğrudan ilişkili tüketim olabilir."
+        }
+      ],
+      "requires_allocation": true,
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "internet_service",
+      "name": "İnternet Hizmeti",
+      "item_type": "service",
+      "keywords": [
+        "internet",
+        "internet hizmeti",
+        "fiber internet",
+        "adsl",
+        "vdsl"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "manufacturing",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 70,
+          "reason": "Genel yönetim ve büro faaliyetleriyle ilişkili olabilir."
+        },
+        {
+          "activity_type": "trading",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 70,
+          "reason": "Genel yönetim faaliyetleriyle ilişkili olabilir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "service_production",
+          "suggested_account": "740",
+          "confidence": 58,
+          "reason": "İnternet hizmet sunumunun doğrudan girdisi ise hizmet üretim maliyeti olabilir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 68,
+          "reason": "Genel yönetim ve büro faaliyetleriyle ilişkili olabilir."
+        }
+      ],
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "shipping_service",
+      "name": "Kargo Hizmeti",
+      "item_type": "service",
+      "keywords": [
+        "kargo",
+        "kurye",
+        "gönderi bedeli",
+        "taşıma bedeli"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "trading",
+          "usage": "selling",
+          "suggested_account": "760",
+          "confidence": 82,
+          "reason": "Satılan malların müşteriye ulaştırılmasıyla ilişkili olabilir."
+        },
+        {
+          "activity_type": "manufacturing",
+          "usage": "selling",
+          "suggested_account": "760",
+          "confidence": 78,
+          "reason": "Mamullerin dağıtımı ve müşteriye teslimiyle ilişkili olabilir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 60,
+          "reason": "Genel evrak veya idari gönderilerle ilişkili olabilir."
+        }
+      ],
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "advertising_service",
+      "name": "Reklam Hizmeti",
+      "item_type": "service",
+      "keywords": [
+        "reklam hizmeti",
+        "dijital reklam",
+        "sosyal medya reklamı",
+        "tanıtım hizmeti"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "manufacturing",
+          "usage": "selling",
+          "suggested_account": "760",
+          "confidence": 88,
+          "reason": "Ürünlerin tanıtım, pazarlama ve satış faaliyetleriyle ilişkilidir."
+        },
+        {
+          "activity_type": "trading",
+          "usage": "selling",
+          "suggested_account": "760",
+          "confidence": 90,
+          "reason": "Ticari malların pazarlama ve satış faaliyetleriyle ilişkilidir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "selling",
+          "suggested_account": "760",
+          "confidence": 88,
+          "reason": "Sunulan hizmetlerin tanıtım ve pazarlama faaliyetleriyle ilişkilidir."
+        }
+      ],
+      "requires_usage_confirmation": true,
+      "verified": false
+    },
+
+    {
+      "product_id": "consulting_service",
+      "name": "Danışmanlık Hizmeti",
+      "item_type": "service",
+      "keywords": [
+        "danışmanlık",
+        "danışmanlık hizmeti",
+        "müşavirlik hizmeti"
+      ],
+      "possible_usages": [
+        {
+          "activity_type": "manufacturing",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 68,
+          "reason": "Genel yönetim faaliyetleriyle ilişkili danışmanlık olabilir."
+        },
+        {
+          "activity_type": "trading",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 68,
+          "reason": "Genel yönetim faaliyetleriyle ilişkili danışmanlık olabilir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "service_production",
+          "suggested_account": "740",
+          "confidence": 58,
+          "reason": "Müşteriye sunulan hizmetin doğrudan girdisi olan alt danışmanlık hizmeti olabilir."
+        },
+        {
+          "activity_type": "service",
+          "usage": "administrative",
+          "suggested_account": "770",
+          "confidence": 65,
+          "reason": "Genel yönetim amaçlı danışmanlık hizmeti olabilir."
+        }
+      ],
+      "requires_usage_confirmation": true,
+      "verified": false
+    }
+  ]
+}

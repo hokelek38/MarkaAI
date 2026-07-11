@@ -1,0 +1,256 @@
+{
+  "metadata": {
+    "name": "MarkaAI Tevkifatlı Alış Kuralları",
+    "version": "0.1.0",
+    "status": "development",
+    "last_reviewed": "2026-07-11",
+    "description": "Kısmi KDV tevkifatına tabi alış faturalarının hesaplanması, kontrolü ve taslak muhasebe fişi oluşturulması için kurallar.",
+    "primary_basis": [
+      "3065 sayılı Katma Değer Vergisi Kanunu",
+      "KDV Genel Uygulama Tebliği I/C-2.1.3",
+      "GİB KDV'de Kısmi Tevkifat Uygulamasında Tevkifat Oranları tablosu"
+    ],
+    "warning": "Tevkifat kodları, oranları, kapsamları, alıcı statüleri ve parasal sınırlar güncel mevzuat veri tabanından doğrulanmadan fiş kesinleştirilemez."
+  },
+
+  "rules": [
+    {
+      "rule_id": "WITHHOLDING_PURCHASE_CREDIT",
+      "priority": 100,
+      "enabled": true,
+      "description": "Vadeli tevkifatlı mal veya hizmet alış faturası",
+      "transaction_codes": [
+        "WITHHOLDING_PURCHASE"
+      ],
+      "conditions": {
+        "direction": [
+          "purchase"
+        ],
+        "tax_scenario": [
+          "partial_withholding"
+        ],
+        "payment_type": [
+          "credit"
+        ]
+      },
+
+      "calculations": {
+        "gross_vat_amount": {
+          "formula": "subtotal * vat_rate",
+          "source_preference": [
+            "invoice_vat_amount",
+            "calculated_vat_amount"
+          ]
+        },
+        "withheld_vat_amount": {
+          "formula": "gross_vat_amount * withholding_numerator / withholding_denominator"
+        },
+        "seller_collected_vat_amount": {
+          "formula": "gross_vat_amount - withheld_vat_amount"
+        },
+        "supplier_payable_amount": {
+          "formula": "subtotal + seller_collected_vat_amount"
+        }
+      },
+
+      "entries": {
+        "debit": [
+          {
+            "dynamic_purchase_account": true,
+            "amount_source": "subtotal",
+            "description": "Mal veya hizmetin niteliğine ve firma profiline göre belirlenen alış hesabı"
+          },
+          {
+            "account": "191",
+            "amount_source": "gross_vat_amount",
+            "description": "Belgede hesaplanan ve indirim şartları ayrıca kontrol edilecek toplam KDV"
+          }
+        ],
+
+        "credit": [
+          {
+            "account": "320",
+            "amount_source": "supplier_payable_amount",
+            "description": "Satıcıya ödenecek matrah ve satıcı tarafından tahsil edilecek KDV toplamı"
+          },
+          {
+            "account_policy_key": "withheld_vat_payable_account",
+            "amount_source": "withheld_vat_amount",
+            "description": "Alıcı tarafından sorumlu sıfatıyla beyan edilecek tevkif edilen KDV",
+            "requires_company_account_policy": true
+          }
+        ]
+      },
+
+      "confidence": 92,
+      "requires_withholding_code_validation": true,
+      "requires_withholding_ratio_validation": true,
+      "requires_buyer_responsibility_check": true,
+      "requires_current_threshold_check": true,
+      "requires_vat2_assessment": true,
+      "requires_professional_approval": true
+    },
+
+    {
+      "rule_id": "WITHHOLDING_PURCHASE_PAID_FROM_BANK",
+      "priority": 95,
+      "enabled": true,
+      "description": "Banka yoluyla ödenmiş tevkifatlı mal veya hizmet alış faturası",
+      "transaction_codes": [
+        "WITHHOLDING_PURCHASE"
+      ],
+      "conditions": {
+        "direction": [
+          "purchase"
+        ],
+        "tax_scenario": [
+          "partial_withholding"
+        ],
+        "payment_type": [
+          "bank"
+        ]
+      },
+
+      "calculations": {
+        "gross_vat_amount": {
+          "formula": "subtotal * vat_rate"
+        },
+        "withheld_vat_amount": {
+          "formula": "gross_vat_amount * withholding_numerator / withholding_denominator"
+        },
+        "seller_collected_vat_amount": {
+          "formula": "gross_vat_amount - withheld_vat_amount"
+        },
+        "supplier_payable_amount": {
+          "formula": "subtotal + seller_collected_vat_amount"
+        }
+      },
+
+      "entries": {
+        "debit": [
+          {
+            "dynamic_purchase_account": true,
+            "amount_source": "subtotal",
+            "description": "Mal veya hizmetin niteliğine göre belirlenen alış hesabı"
+          },
+          {
+            "account": "191",
+            "amount_source": "gross_vat_amount",
+            "description": "İndirim şartları ayrıca kontrol edilecek toplam alış KDV'si"
+          }
+        ],
+
+        "credit": [
+          {
+            "account": "102",
+            "amount_source": "supplier_payable_amount",
+            "description": "Satıcıya banka yoluyla ödenen net fatura bedeli"
+          },
+          {
+            "account_policy_key": "withheld_vat_payable_account",
+            "amount_source": "withheld_vat_amount",
+            "description": "Sorumlu sıfatıyla beyan edilecek tevkif edilen KDV",
+            "requires_company_account_policy": true
+          }
+        ]
+      },
+
+      "confidence": 88,
+      "requires_bank_payment_confirmation": true,
+      "requires_withholding_code_validation": true,
+      "requires_withholding_ratio_validation": true,
+      "requires_buyer_responsibility_check": true,
+      "requires_current_threshold_check": true,
+      "requires_vat2_assessment": true,
+      "requires_professional_approval": true
+    }
+  ],
+
+  "validation_rules": [
+    {
+      "validation_id": "WHP_V001",
+      "name": "İşlem türü kontrolü",
+      "description": "Bu kurallar yalnızca WITHHOLDING_PURCHASE işleminde çalıştırılmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V002",
+      "name": "Tevkifat kodu kontrolü",
+      "description": "Tevkifat kodu güncel GİB tevkifat listesinde bulunmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V003",
+      "name": "Tevkifat oranı kontrolü",
+      "description": "Faturadaki tevkifat oranı, işlem koduna ait güncel oranla uyumlu olmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V004",
+      "name": "Alıcı sorumluluğu kontrolü",
+      "description": "Alıcının ilgili işlem bakımından tevkifat uygulamakla sorumlu kişiler arasında bulunup bulunmadığı doğrulanmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V005",
+      "name": "Güncel parasal sınır kontrolü",
+      "description": "İşleme uygulanacak güncel tevkifat sınırı mevzuat veri tabanından kontrol edilmelidir.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V006",
+      "name": "KDV matematik kontrolü",
+      "description": "Matrah, KDV oranı, toplam KDV, tevkif edilen KDV ve satıcının tahsil edeceği KDV matematiksel olarak uyumlu olmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V007",
+      "name": "Satıcıya ödenecek tutar kontrolü",
+      "description": "Satıcıya ödenecek tutar matrah ile satıcı tarafından tahsil edilecek KDV toplamına eşit olmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V008",
+      "name": "2 No.lu KDV değerlendirmesi",
+      "description": "Tevkif edilen KDV'nin sorumlu sıfatıyla beyan edilmesine ilişkin yükümlülük ve dönem kontrol edilmelidir.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V009",
+      "name": "İndirilecek KDV kontrolü",
+      "description": "191 hesabına alınacak tutarın belge, kayıt ve indirim şartları ayrıca doğrulanmalıdır.",
+      "severity": "warning",
+      "blocks_voucher": false
+    },
+    {
+      "validation_id": "WHP_V010",
+      "name": "Borç alacak eşitliği",
+      "description": "Taslak fişte toplam borç ve alacak eşit olmalıdır.",
+      "severity": "error",
+      "blocks_voucher": true
+    },
+    {
+      "validation_id": "WHP_V011",
+      "name": "Mali müşavir onayı",
+      "description": "Tevkifatlı alış kaydı mali müşavir onayı olmadan kesinleştirilemez veya ERP sistemine aktarılamaz.",
+      "severity": "error",
+      "blocks_voucher": true
+    }
+  ],
+
+  "account_policy_requirements": [
+    {
+      "policy_key": "withheld_vat_payable_account",
+      "description": "Tevkif edilen ve sorumlu sıfatıyla beyan edilecek KDV'nin izleneceği firma hesap planı hesabı veya alt hesabı.",
+      "required": true
+    }
+  ]
+}

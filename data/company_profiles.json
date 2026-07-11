@@ -1,0 +1,128 @@
+{
+  "metadata": {
+    "name": "MarkaAI Firma Profilleri",
+    "version": "0.1.0",
+    "last_updated": "2026-07-11",
+    "description": "Firmaların faaliyet ve muhasebe özelliklerini saklayan bilgi tabanı."
+  },
+  "companies": [
+    {
+      "company_id": "demo_manufacturing",
+      "title": "Demo Mobilya İmalat Firması",
+      "tax_number": "1111111111",
+      "activity_type": "manufacturing",
+      "sector": "furniture",
+      "activity_description": "Mobilya ve ahşap ürünleri imalatı",
+      "nace_codes": [],
+      "inventory_enabled": true,
+      "production_enabled": true,
+      "service_production_enabled": false,
+      "default_purchase_accounts": {
+        "raw_material": "150",
+        "trade_goods": "153",
+        "fixed_asset": "255",
+        "administrative_expense": "770",
+        "selling_expense": "760",
+        "service_cost": "740"
+      },
+      "classification_rules": [
+        {
+          "keywords": [
+            "ahşap",
+            "mdf",
+            "sunta",
+            "kereste",
+            "kumaş",
+            "sünger",
+            "vernik",
+            "tutkal",
+            "torna ayak"
+          ],
+          "usage_purpose": "production",
+          "suggested_account": "150",
+          "confidence": 90,
+          "requires_confirmation": true
+        }
+      ],
+      "learning_settings": {
+        "enabled": true,
+        "minimum_approved_examples": 5,
+        "maximum_confidence_from_history": 95,
+        "requires_professional_approval": true
+      },
+      "active": true
+    },
+    {
+      "company_id": "demo_trading",
+      "title": "Demo Alım Satım Firması",
+      "tax_number": "2222222222",
+      "activity_type": "trading",
+      "sector": "general_trade",
+      "activity_description": "Mal alım ve satımı",
+      "nace_codes": [],
+      "inventory_enabled": true,
+      "production_enabled": false,
+      "service_production_enabled": false,
+      "default_purchase_accounts": {
+        "trade_goods": "153",
+        "fixed_asset": "255",
+        "administrative_expense": "770",
+        "selling_expense": "760"
+      },
+      "classification_rules": [
+        {
+          "keywords": [],
+          "usage_purpose": "resale",
+          "suggested_account": "153",
+          "confidence": 80,
+          "requires_confirmation": true
+        }
+      ],
+      "learning_settings": {
+        "enabled": true,
+        "minimum_approved_examples": 5,
+        "maximum_confidence_from_history": 95,
+        "requires_professional_approval": true
+      },
+      "active": true
+    },
+    {
+      "company_id": "demo_service",
+      "title": "Demo Hizmet Firması",
+      "tax_number": "3333333333",
+      "activity_type": "service",
+      "sector": "professional_services",
+      "activity_description": "Profesyonel hizmet sunumu",
+      "nace_codes": [],
+      "inventory_enabled": false,
+      "production_enabled": false,
+      "service_production_enabled": true,
+      "default_purchase_accounts": {
+        "direct_service_cost": "740",
+        "fixed_asset": "255",
+        "administrative_expense": "770",
+        "selling_expense": "760"
+      },
+      "classification_rules": [
+        {
+          "keywords": [
+            "danışmanlık",
+            "taşeron hizmet",
+            "proje hizmeti"
+          ],
+          "usage_purpose": "service_production",
+          "suggested_account": "740",
+          "confidence": 80,
+          "requires_confirmation": true
+        }
+      ],
+      "learning_settings": {
+        "enabled": true,
+        "minimum_approved_examples": 5,
+        "maximum_confidence_from_history": 95,
+        "requires_professional_approval": true
+      },
+      "active": true
+    }
+  ]
+}

@@ -1,0 +1,179 @@
+{
+  "metadata": {
+    "name": "MarkaAI Satın Alma Kuralları",
+    "version": "1.0.0",
+    "description": "Alış faturaları için muhasebe hesap öneri kuralları",
+    "last_updated": "2026-07-11"
+  },
+
+  "rules": [
+
+    {
+      "rule_id": "PURCHASE_RAW_MATERIAL",
+
+      "priority": 100,
+
+      "enabled": true,
+
+      "description": "İmalat işletmesinde üretimde kullanılacak hammadde",
+
+      "conditions": {
+
+        "activity_type": [
+          "manufacturing"
+        ],
+
+        "document_type": [
+          "purchase_invoice"
+        ],
+
+        "usage": [
+          "production"
+        ]
+
+      },
+
+      "result": {
+
+        "account": "150",
+
+        "confidence": 95
+
+      }
+
+    },
+
+    {
+      "rule_id": "PURCHASE_TRADE_GOODS",
+
+      "priority": 90,
+
+      "enabled": true,
+
+      "description": "Al sat yapan işletmenin ticari mal alımı",
+
+      "conditions": {
+
+        "activity_type": [
+          "trading"
+        ],
+
+        "document_type": [
+          "purchase_invoice"
+        ],
+
+        "usage": [
+          "resale"
+        ]
+
+      },
+
+      "result": {
+
+        "account": "153",
+
+        "confidence": 92
+
+      }
+
+    },
+
+    {
+      "rule_id": "PURCHASE_FIXED_ASSET",
+
+      "priority": 80,
+
+      "enabled": true,
+
+      "description": "İşletmede kullanılacak duran varlık",
+
+      "conditions": {
+
+        "document_type": [
+          "purchase_invoice"
+        ],
+
+        "usage": [
+          "fixed_asset"
+        ]
+
+      },
+
+      "result": {
+
+        "account": "255",
+
+        "confidence": 90
+
+      }
+
+    },
+
+    {
+      "rule_id": "PURCHASE_SERVICE_COST",
+
+      "priority": 75,
+
+      "enabled": true,
+
+      "description": "Hizmet üretim maliyeti",
+
+      "conditions": {
+
+        "activity_type": [
+          "service"
+        ],
+
+        "document_type": [
+          "purchase_invoice"
+        ],
+
+        "usage": [
+          "service_production"
+        ]
+
+      },
+
+      "result": {
+
+        "account": "740",
+
+        "confidence": 88
+
+      }
+
+    },
+
+    {
+      "rule_id": "PURCHASE_ADMIN_EXPENSE",
+
+      "priority": 60,
+
+      "enabled": true,
+
+      "description": "Genel yönetim gideri",
+
+      "conditions": {
+
+        "document_type": [
+          "purchase_invoice"
+        ],
+
+        "usage": [
+          "administrative"
+        ]
+
+      },
+
+      "result": {
+
+        "account": "770",
+
+        "confidence": 65
+
+      }
+
+    }
+
+  ]
+}
