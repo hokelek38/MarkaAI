@@ -62,6 +62,10 @@ class DecisionEngine:
 
         context = context or {}
 
+        invoice_data = self._prepare_invoice_amounts(
+            invoice_data
+        )
+
         transaction_result = (
             self.transaction_service.classify_transaction(
                 document_data=invoice_data,
@@ -152,6 +156,69 @@ class DecisionEngine:
                 [],
             ),
             "requires_user_confirmation": True,
+        }
+
+    def _prepare_invoice_amounts(
+        self,
+        invoice_data: dict,
+    ) -> dict:
+        """
+        Muhasebe kaydında kullanılacak ana tutarı hazırlar.
+
+        Ana hesap:
+        - Öncelikle KDV matrah toplamını kullanır.
+        - Matrah okunamazsa mal/hizmet toplamına döner.
+        """
+
+        prepared_data = dict(invoice_data)
+
+        tax_base_amount = prepared_data.get(
+            "tax_base_amount"
+        )
+
+        subtotal = prepared_data.get(
+            "subtotal"
+        )
+
+        prepared_data["original_subtotal"] = subtotal
+
+        if self._is_valid_amount(
+            tax_base_amount
+        ):
+            prepared_data["subtotal"] = (
+                tax_base_amount
+            )
+            prepared_data[
+                "accounting_base_amount"
+            ] = tax_base_amount
+            prepared_data[
+                "accounting_amount_source"
+            ] = "tax_base_amount"
+
+        else:
+            prepared_data[
+                "accounting_base_amount"
+            ] = subtotal
+            prepared_data[
+                "accounting_amount_source"
+            ] = "subtotal_fallback"
+
+        return prepared_data
+
+    def _is_valid_amount(
+        self,
+        value,
+    ) -> bool:
+        if value is None:
+            return False
+
+        return str(value).strip() not in {
+            "",
+            "-",
+            "0",
+            "0,00",
+            "0,00 TL",
+            "0.00",
         }
 
     def _process_standard_purchase(
@@ -269,6 +336,10 @@ class DecisionEngine:
             ),
             "file_name": invoice_data.get(
                 "file_name",
+                "",
+            ),
+            "source_file_path": invoice_data.get(
+                "source_file_path",
                 "",
             ),
             "counterparty_title": self._get_counterparty_title(

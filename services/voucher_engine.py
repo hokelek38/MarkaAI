@@ -108,6 +108,10 @@ class VoucherEngine:
                             "",
                         ),
                     ),
+                    "source_file_path": document.get(
+                        "source_file_path",
+                        "",
+                    ),
                     "original_document_number": document.get(
                         "original_document_number",
                         "",

@@ -1,35 +1,58 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget,
+    QComboBox,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
-    QHBoxLayout,
-    QFrame,
-    QFileDialog,
-    QMessageBox,
+    QWidget,
 )
 
-from services.accounting_service import AccountingService
+from services.company_profile_service import CompanyProfileService
+from services.decision.decision_engine import DecisionEngine
 from services.pdf_service import PdfService
 from ui.theme import Theme
 
 
 class PdfPage(QWidget):
+    """
+    Tek veya birden fazla fatura içeren PDF dosyalarını okur.
+
+    Kullanıcı PDF içindeki faturalar arasında seçim yapabilir.
+    Seçilen fatura DecisionEngine ile muhasebeleştirilir.
+    """
+
+    analysis_ready = Signal(object, object)
 
     def __init__(self):
         super().__init__()
 
         self.selected_file = None
+        self.invoices = []
         self.invoice_data = None
-        self.pdf_service = PdfService()
-        self.accounting_service = AccountingService()
 
+        self.pdf_service = PdfService()
+        self.decision_engine = DecisionEngine()
+        self.company_profile_service = CompanyProfileService()
+
+        # Firma seçme ekranı eklenene kadar geliştirme firması.
+        self.company_id = "demo_manufacturing"
+
+        # Firma VKN/TCKN bilgisi taraflarla eşleşmezse
+        # belge alış faturası kabul edilir.
+        self.default_document_direction = "purchase"
+
+        self.build_ui()
+
+    def build_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(20)
+        main_layout.setSpacing(16)
 
         title = QLabel("PDF Fatura Aktar")
         title.setStyleSheet(f"""
@@ -39,15 +62,18 @@ class PdfPage(QWidget):
         """)
 
         subtitle = QLabel(
-            "PDF faturanızı seçin. MarkaAI temel fatura bilgilerini otomatik çıkarsın."
+            "Tek veya birden fazla fatura içeren PDF dosyasını seçin. "
+            "MarkaAI faturaları ayırıp muhasebe fişi önerisi oluştursun."
         )
+        subtitle.setWordWrap(True)
         subtitle.setStyleSheet(f"""
             font-size: {Theme.NORMAL}px;
             color: {Theme.SUBTEXT};
         """)
 
+        # PDF yükleme alanı
         upload_frame = QFrame()
-        upload_frame.setMinimumHeight(240)
+        upload_frame.setMinimumHeight(185)
         upload_frame.setStyleSheet("""
             QFrame {
                 background: white;
@@ -57,14 +83,14 @@ class PdfPage(QWidget):
         """)
 
         upload_layout = QVBoxLayout(upload_frame)
-        upload_layout.setContentsMargins(30, 30, 30, 30)
-        upload_layout.setSpacing(14)
+        upload_layout.setContentsMargins(25, 20, 25, 20)
+        upload_layout.setSpacing(10)
         upload_layout.setAlignment(Qt.AlignCenter)
 
         upload_icon = QLabel("📄")
         upload_icon.setAlignment(Qt.AlignCenter)
         upload_icon.setStyleSheet("""
-            font-size: 48px;
+            font-size: 42px;
             border: none;
         """)
 
@@ -78,7 +104,7 @@ class PdfPage(QWidget):
         """)
 
         upload_description = QLabel(
-            "Firma, tarih, fatura numarası, KDV ve toplam tutar otomatik okunacaktır."
+            "Birleşik PDF içindeki farklı faturalar otomatik ayrılacaktır."
         )
         upload_description.setAlignment(Qt.AlignCenter)
         upload_description.setWordWrap(True)
@@ -90,10 +116,9 @@ class PdfPage(QWidget):
 
         select_button = QPushButton("PDF Seç")
         select_button.setFixedWidth(180)
-        select_button.setMinimumHeight(48)
+        select_button.setMinimumHeight(44)
         select_button.setCursor(Qt.PointingHandCursor)
         select_button.clicked.connect(self.select_pdf)
-
         select_button.setStyleSheet(f"""
             QPushButton {{
                 background: {Theme.PRIMARY};
@@ -113,13 +138,93 @@ class PdfPage(QWidget):
             }}
         """)
 
-        upload_layout.addStretch()
         upload_layout.addWidget(upload_icon)
         upload_layout.addWidget(upload_title)
         upload_layout.addWidget(upload_description)
-        upload_layout.addWidget(select_button, alignment=Qt.AlignCenter)
-        upload_layout.addStretch()
+        upload_layout.addWidget(
+            select_button,
+            alignment=Qt.AlignCenter,
+        )
 
+        # Fatura seçim alanı
+        selection_frame = QFrame()
+        selection_frame.setStyleSheet("""
+            QFrame {
+                background: white;
+                border: 1px solid #E5E7EB;
+                border-radius: 12px;
+            }
+        """)
+
+        selection_layout = QHBoxLayout(selection_frame)
+        selection_layout.setContentsMargins(20, 14, 20, 14)
+        selection_layout.setSpacing(16)
+
+        selection_text_layout = QVBoxLayout()
+        selection_text_layout.setSpacing(4)
+
+        selection_title = QLabel("PDF İçindeki Faturalar")
+        selection_title.setStyleSheet("""
+            font-size: 15px;
+            font-weight: bold;
+            color: #1F2937;
+            border: none;
+        """)
+
+        self.invoice_count_label = QLabel(
+            "Henüz PDF seçilmedi."
+        )
+        self.invoice_count_label.setStyleSheet("""
+            font-size: 13px;
+            color: #64748B;
+            border: none;
+        """)
+
+        selection_text_layout.addWidget(selection_title)
+        selection_text_layout.addWidget(
+            self.invoice_count_label
+        )
+
+        self.invoice_selector = QComboBox()
+        self.invoice_selector.setMinimumWidth(500)
+        self.invoice_selector.setMinimumHeight(42)
+        self.invoice_selector.setEnabled(False)
+        self.invoice_selector.currentIndexChanged.connect(
+            self.change_selected_invoice
+        )
+        self.invoice_selector.setStyleSheet("""
+            QComboBox {
+                background: #F8FAFC;
+                color: #334155;
+                border: 1px solid #CBD5E1;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            QComboBox:hover {
+                border-color: #2563EB;
+            }
+
+            QComboBox:disabled {
+                background: #F1F5F9;
+                color: #94A3B8;
+            }
+
+            QComboBox QAbstractItemView {
+                background: white;
+                color: #334155;
+                border: 1px solid #CBD5E1;
+                selection-background-color: #DBEAFE;
+                selection-color: #1E3A8A;
+            }
+        """)
+
+        selection_layout.addLayout(selection_text_layout)
+        selection_layout.addStretch()
+        selection_layout.addWidget(self.invoice_selector)
+
+        # Fatura bilgi alanı
         information_frame = QFrame()
         information_frame.setStyleSheet("""
             QFrame {
@@ -130,10 +235,10 @@ class PdfPage(QWidget):
         """)
 
         information_layout = QVBoxLayout(information_frame)
-        information_layout.setContentsMargins(24, 20, 24, 20)
-        information_layout.setSpacing(12)
+        information_layout.setContentsMargins(24, 18, 24, 18)
+        information_layout.setSpacing(9)
 
-        information_title = QLabel("Fatura Bilgileri")
+        information_title = QLabel("Seçilen Fatura Bilgileri")
         information_title.setStyleSheet("""
             font-size: 17px;
             font-weight: bold;
@@ -142,7 +247,8 @@ class PdfPage(QWidget):
         """)
 
         self.file_label = QLabel("Dosya: Henüz PDF seçilmedi")
-        self.page_count_label = QLabel("Sayfa Sayısı: -")
+        self.page_count_label = QLabel("PDF Toplam Sayfa Sayısı: -")
+        self.page_range_label = QLabel("Faturanın Bulunduğu Sayfa: -")
         self.invoice_number_label = QLabel("Fatura No: -")
         self.date_label = QLabel("Fatura Tarihi: -")
         self.company_label = QLabel("Satıcı: -")
@@ -156,6 +262,7 @@ class PdfPage(QWidget):
         information_labels = [
             self.file_label,
             self.page_count_label,
+            self.page_range_label,
             self.invoice_number_label,
             self.date_label,
             self.company_label,
@@ -167,30 +274,29 @@ class PdfPage(QWidget):
             self.payable_label,
         ]
 
+        information_layout.addWidget(information_title)
+
         for label in information_labels:
             label.setWordWrap(True)
             label.setStyleSheet("""
-                font-size: 14px;
+                font-size: 13px;
                 color: #475569;
                 border: none;
-                padding: 2px;
+                padding: 1px;
             """)
-
-        information_layout.addWidget(information_title)
-        information_layout.addSpacing(5)
-
-        for label in information_labels:
             information_layout.addWidget(label)
 
+        # Analiz butonu
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        self.analyze_button = QPushButton("🤖 Muhasebe Analizine Geç")
+        self.analyze_button = QPushButton(
+            "🤖 Seçilen Faturayı Analiz Et"
+        )
         self.analyze_button.setMinimumHeight(48)
-        self.analyze_button.setFixedWidth(250)
+        self.analyze_button.setFixedWidth(270)
         self.analyze_button.setEnabled(False)
         self.analyze_button.clicked.connect(self.analyze_pdf)
-
         self.analyze_button.setStyleSheet("""
             QPushButton {
                 background: #16A34A;
@@ -220,6 +326,7 @@ class PdfPage(QWidget):
         main_layout.addWidget(title)
         main_layout.addWidget(subtitle)
         main_layout.addWidget(upload_frame)
+        main_layout.addWidget(selection_frame)
         main_layout.addWidget(information_frame)
         main_layout.addLayout(button_layout)
         main_layout.addStretch()
@@ -235,28 +342,58 @@ class PdfPage(QWidget):
         if not file_path:
             return
 
-        self.selected_file = file_path
-        self.reset_invoice_information()
+        self.reset_pdf_state()
 
-        file_name = Path(file_path).name
-        self.file_label.setText(f"Dosya: {file_name}")
+        self.selected_file = file_path
+        self.file_label.setText(
+            f"Dosya: {Path(file_path).name}"
+        )
 
         try:
-            self.invoice_data = self.pdf_service.analyze_invoice(file_path)
+            self.invoices = self.pdf_service.analyze_invoices(
+                file_path
+            )
 
-            self.show_invoice_information(self.invoice_data)
+            for invoice in self.invoices:
+                invoice["source_file_path"] = file_path
+
+            if not self.invoices:
+                raise ValueError(
+                    "PDF içinde analiz edilebilecek fatura bulunamadı."
+                )
+
+            self.populate_invoice_selector()
+
+            self.invoice_data = self.invoices[0]
+            self.show_invoice_information(
+                self.invoice_data
+            )
+
+            self.invoice_selector.setEnabled(True)
             self.analyze_button.setEnabled(True)
+
+            invoice_count = len(self.invoices)
+
+            if invoice_count == 1:
+                message = (
+                    "PDF başarıyla okundu.\n\n"
+                    "1 fatura bulundu."
+                )
+            else:
+                message = (
+                    "PDF başarıyla okundu.\n\n"
+                    f"{invoice_count} farklı fatura bulundu.\n"
+                    "Analiz edilecek faturayı listeden seçebilirsiniz."
+                )
 
             QMessageBox.information(
                 self,
-                "Fatura Okundu",
-                "Fatura bilgileri başarıyla çıkarıldı.",
+                "PDF Analizi Tamamlandı",
+                message,
             )
 
         except Exception as error:
-            self.selected_file = None
-            self.invoice_data = None
-            self.analyze_button.setEnabled(False)
+            self.reset_pdf_state()
 
             QMessageBox.critical(
                 self,
@@ -264,13 +401,95 @@ class PdfPage(QWidget):
                 f"PDF okunurken bir hata oluştu:\n\n{error}",
             )
 
-    def show_invoice_information(self, data):
+    def populate_invoice_selector(self):
+        """
+        PDF içindeki faturaları seçim kutusuna ekler.
+        """
+
+        self.invoice_selector.blockSignals(True)
+        self.invoice_selector.clear()
+
+        invoice_count = len(self.invoices)
+
+        self.invoice_count_label.setText(
+            f"Dosyada {invoice_count} fatura bulundu."
+        )
+
+        for invoice in self.invoices:
+            invoice_index = invoice.get(
+                "invoice_index",
+                "-",
+            )
+            invoice_number = invoice.get(
+                "invoice_number",
+                "-",
+            )
+            seller_name = invoice.get(
+                "seller_name",
+                "-",
+            )
+            total_amount = invoice.get(
+                "total_amount",
+                "-",
+            )
+            page_range = invoice.get(
+                "page_range",
+                "-",
+            )
+
+            item_text = (
+                f"{invoice_index}. "
+                f"{invoice_number} | "
+                f"{seller_name} | "
+                f"{total_amount} | "
+                f"Sayfa {page_range}"
+            )
+
+            self.invoice_selector.addItem(
+                item_text
+            )
+
+        self.invoice_selector.setCurrentIndex(0)
+        self.invoice_selector.blockSignals(False)
+
+    def change_selected_invoice(
+        self,
+        index: int,
+    ):
+        """
+        Kullanıcı farklı bir fatura seçtiğinde
+        ekrandaki bilgileri günceller.
+        """
+
+        if index < 0 or index >= len(self.invoices):
+            self.invoice_data = None
+            self.analyze_button.setEnabled(False)
+            return
+
+        self.invoice_data = self.invoices[index]
+
+        self.show_invoice_information(
+            self.invoice_data
+        )
+
+        self.analyze_button.setEnabled(True)
+
+    def show_invoice_information(
+        self,
+        data: dict,
+    ):
         self.file_label.setText(
             f"Dosya: {data.get('file_name', '-')}"
         )
 
         self.page_count_label.setText(
-            f"Sayfa Sayısı: {data.get('page_count', '-')}"
+            "PDF Toplam Sayfa Sayısı: "
+            f"{data.get('document_page_count', '-')}"
+        )
+
+        self.page_range_label.setText(
+            "Faturanın Bulunduğu Sayfa: "
+            f"{data.get('page_range', '-')}"
         )
 
         self.invoice_number_label.setText(
@@ -286,7 +505,8 @@ class PdfPage(QWidget):
         )
 
         self.tax_number_label.setText(
-            f"Satıcı VKN / TCKN: {data.get('seller_tax_number', '-')}"
+            "Satıcı VKN / TCKN: "
+            f"{data.get('seller_tax_number', '-')}"
         )
 
         self.buyer_label.setText(
@@ -294,86 +514,211 @@ class PdfPage(QWidget):
         )
 
         self.subtotal_label.setText(
-            f"Mal Hizmet Toplamı: {data.get('subtotal', '-')}"
+            "Mal Hizmet Toplamı: "
+            f"{data.get('subtotal', '-')}"
         )
 
         self.vat_label.setText(
-            f"Hesaplanan KDV: {data.get('vat_amount', '-')}"
+            "Hesaplanan KDV: "
+            f"{data.get('vat_amount', '-')}"
         )
 
         self.total_label.setText(
-            f"Genel Toplam: {data.get('total_amount', '-')}"
+            "Genel Toplam: "
+            f"{data.get('total_amount', '-')}"
         )
 
         self.payable_label.setText(
-            f"Ödenecek Tutar: {data.get('payable_amount', '-')}"
+            "Ödenecek Tutar: "
+            f"{data.get('payable_amount', '-')}"
         )
 
-    def reset_invoice_information(self):
-        self.page_count_label.setText("Sayfa Sayısı: -")
-        self.invoice_number_label.setText("Fatura No: -")
-        self.date_label.setText("Fatura Tarihi: -")
-        self.company_label.setText("Satıcı: -")
-        self.tax_number_label.setText("Satıcı VKN / TCKN: -")
-        self.buyer_label.setText("Alıcı: -")
-        self.subtotal_label.setText("Mal Hizmet Toplamı: -")
-        self.vat_label.setText("Hesaplanan KDV: -")
-        self.total_label.setText("Genel Toplam: -")
-        self.payable_label.setText("Ödenecek Tutar: -")
+    def reset_pdf_state(self):
+        """
+        Önceki PDF ve fatura bilgilerini temizler.
+        """
+
+        self.selected_file = None
+        self.invoices = []
+        self.invoice_data = None
+
+        self.invoice_selector.blockSignals(True)
+        self.invoice_selector.clear()
+        self.invoice_selector.blockSignals(False)
+        self.invoice_selector.setEnabled(False)
+
+        self.invoice_count_label.setText(
+            "Henüz PDF seçilmedi."
+        )
+
+        self.file_label.setText(
+            "Dosya: Henüz PDF seçilmedi"
+        )
+        self.page_count_label.setText(
+            "PDF Toplam Sayfa Sayısı: -"
+        )
+        self.page_range_label.setText(
+            "Faturanın Bulunduğu Sayfa: -"
+        )
+        self.invoice_number_label.setText(
+            "Fatura No: -"
+        )
+        self.date_label.setText(
+            "Fatura Tarihi: -"
+        )
+        self.company_label.setText(
+            "Satıcı: -"
+        )
+        self.tax_number_label.setText(
+            "Satıcı VKN / TCKN: -"
+        )
+        self.buyer_label.setText(
+            "Alıcı: -"
+        )
+        self.subtotal_label.setText(
+            "Mal Hizmet Toplamı: -"
+        )
+        self.vat_label.setText(
+            "Hesaplanan KDV: -"
+        )
+        self.total_label.setText(
+            "Genel Toplam: -"
+        )
+        self.payable_label.setText(
+            "Ödenecek Tutar: -"
+        )
+
         self.analyze_button.setEnabled(False)
+        self.analyze_button.setText(
+            "🤖 Seçilen Faturayı Analiz Et"
+        )
 
     def analyze_pdf(self):
+        """
+        Listeden seçilen faturayı DecisionEngine ile analiz eder.
+        """
+
         if not self.selected_file or not self.invoice_data:
             QMessageBox.warning(
                 self,
                 "Fatura Seçilmedi",
-                "Lütfen önce bir PDF faturası seçin.",
+                "Lütfen önce bir PDF ve fatura seçin.",
             )
             return
 
+        self.analyze_button.setEnabled(False)
+        self.analyze_button.setText(
+            "Analiz ediliyor..."
+        )
+
         try:
-            accounting_data = self.accounting_service.suggest_accounts(
-                self.invoice_data
+            company = (
+                self.company_profile_service.get_company_by_id(
+                    self.company_id
+                )
             )
 
-            message_lines = [
-                "MUHASEBE FİŞİ ÖNERİSİ",
-                "",
-                "BORÇ",
-            ]
-
-            for entry in accounting_data["debit_entries"]:
-                message_lines.append(
-                    f"{entry['account_code']} "
-                    f"{entry['account_name']} — {entry['amount']}"
+            if not company:
+                raise ValueError(
+                    "Aktif firma profili bulunamadı: "
+                    f"{self.company_id}"
                 )
 
-            message_lines.extend([
-                "",
-                "ALACAK",
-            ])
+            document_direction = (
+                self._detect_document_direction(
+                    company
+                )
+            )
 
-            for entry in accounting_data["credit_entries"]:
-                message_lines.append(
-                    f"{entry['account_code']} "
-                    f"{entry['account_name']} — {entry['amount']}"
+            result = self.decision_engine.process_invoice(
+                invoice_data=self.invoice_data,
+                company=company,
+                company_id=self.company_id,
+                document_direction=document_direction,
+                context={},
+            )
+
+            if not result.get("success"):
+                errors = result.get(
+                    "errors",
+                    [
+                        "Muhasebe analizi oluşturulamadı."
+                    ],
                 )
 
-            message_lines.extend([
-                "",
-                "Öneri Gerekçesi:",
-                accounting_data["reason"],
-            ])
+                raise ValueError(
+                    "\n".join(errors)
+                )
 
-            QMessageBox.information(
-                self,
-                "Muhasebe Hesap Önerisi",
-                "\n".join(message_lines),
+            voucher_data = result.get("voucher")
+            validation_result = (
+                result.get("validation") or {}
+            )
+
+            if not voucher_data:
+                raise ValueError(
+                    "DecisionEngine geçerli bir MSV fişi üretmedi."
+                )
+
+            self.analysis_ready.emit(
+                voucher_data,
+                validation_result,
             )
 
         except Exception as error:
             QMessageBox.critical(
                 self,
                 "Muhasebe Analizi Hatası",
-                f"Muhasebe önerisi oluşturulurken hata oluştu:\n\n{error}",
+                "Muhasebe fişi oluşturulurken "
+                "bir hata oluştu:\n\n"
+                f"{error}",
             )
+
+        finally:
+            self.analyze_button.setText(
+                "🤖 Seçilen Faturayı Analiz Et"
+            )
+            self.analyze_button.setEnabled(
+                self.invoice_data is not None
+            )
+
+    def _detect_document_direction(
+        self,
+        company: dict,
+    ) -> str:
+        """
+        Aktif firmanın belge üzerindeki tarafına göre
+        alış veya satış yönünü belirler.
+        """
+
+        company_tax_number = str(
+            company.get("tax_number", "")
+        ).strip()
+
+        seller_tax_number = str(
+            self.invoice_data.get(
+                "seller_tax_number",
+                "",
+            )
+        ).strip()
+
+        buyer_tax_number = str(
+            self.invoice_data.get(
+                "buyer_tax_number",
+                "",
+            )
+        ).strip()
+
+        if (
+            company_tax_number
+            and company_tax_number == seller_tax_number
+        ):
+            return "sale"
+
+        if (
+            company_tax_number
+            and company_tax_number == buyer_tax_number
+        ):
+            return "purchase"
+
+        return self.default_document_direction
