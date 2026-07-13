@@ -10,6 +10,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QHeaderView,
@@ -40,12 +41,17 @@ class AccountingPage(QWidget):
     """
 
     voucher_approved = Signal(dict)
+    line_usage_review_submitted = Signal(dict)
 
     def __init__(self):
         super().__init__()
 
         self.voucher_data = None
         self.validation_result = {}
+        self.line_usage_review_data = {}
+        self.line_usage_review_invoice = {}
+        self.line_usage_review_company = {}
+        self.line_usage_combo_boxes = []
         self.voucher_engine = VoucherEngine()
 
         self.pdf_document = None
@@ -670,6 +676,14 @@ class AccountingPage(QWidget):
         content_layout.addWidget(
             self.create_decision_card()
         )
+
+        self.line_usage_review_card = (
+            self.create_line_usage_review_card()
+        )
+
+        content_layout.addWidget(
+            self.line_usage_review_card
+        )
         content_layout.addWidget(
             self.create_legal_basis_card()
         )
@@ -731,6 +745,445 @@ class AccountingPage(QWidget):
         layout.addWidget(self.reason_label)
 
         return frame
+
+    def create_line_usage_review_card(
+        self,
+    ) -> QFrame:
+        """
+        Kullanım amacı belirlenemeyen kalemleri
+        kullanıcıya gösterir.
+        """
+
+        frame = self.create_information_card()
+        frame.setVisible(False)
+
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(
+            12,
+            12,
+            12,
+            12,
+        )
+        layout.setSpacing(8)
+
+        title = QLabel(
+            "Kullanım Amacı Seçimi"
+        )
+        title.setWordWrap(True)
+        title.setStyleSheet(
+            self.section_title_style()
+        )
+
+        self.line_usage_information_label = QLabel(
+            "Kullanım amacı belirlenemeyen "
+            "kalemler burada gösterilecek."
+        )
+        self.line_usage_information_label.setWordWrap(
+            True
+        )
+        self.line_usage_information_label.setStyleSheet("""
+            background: #FFF7E6;
+            color: #8A5A00;
+            border: 1px solid #F0D18A;
+            border-radius: 7px;
+            padding: 9px;
+            font-size: 11px;
+        """)
+
+        self.line_usage_table = QTableWidget()
+        self.line_usage_table.setColumnCount(2)
+        self.line_usage_table.setHorizontalHeaderLabels([
+            "Fatura Kalemi",
+            "Kullanım Amacı",
+        ])
+        self.line_usage_table.setMinimumHeight(220)
+        self.line_usage_table.setMaximumHeight(360)
+        self.line_usage_table.setAlternatingRowColors(
+            True
+        )
+        self.line_usage_table.setSelectionMode(
+            QAbstractItemView.NoSelection
+        )
+        self.line_usage_table.setEditTriggers(
+            QAbstractItemView.NoEditTriggers
+        )
+        self.line_usage_table.verticalHeader().setVisible(
+            False
+        )
+        self.line_usage_table.verticalHeader().setDefaultSectionSize(
+            82
+        )
+
+        header = (
+            self.line_usage_table.horizontalHeader()
+        )
+        header.setSectionResizeMode(
+            0,
+            QHeaderView.Stretch,
+        )
+        header.setSectionResizeMode(
+            1,
+            QHeaderView.Stretch,
+        )
+
+        self.line_usage_apply_button = QPushButton(
+            "Seçimleri Uygula ve Yeniden Hesapla"
+        )
+        self.line_usage_apply_button.setMinimumHeight(
+            40
+        )
+        self.line_usage_apply_button.setCursor(
+            Qt.PointingHandCursor
+        )
+        self.line_usage_apply_button.clicked.connect(
+            self.submit_line_usage_review
+        )
+        self.line_usage_apply_button.setStyleSheet("""
+            QPushButton {
+                background: #2563EB;
+                color: white;
+                border: none;
+                border-radius: 7px;
+                padding: 8px;
+                font-size: 11px;
+                font-weight: 800;
+            }
+
+            QPushButton:hover {
+                background: #1D4ED8;
+            }
+        """)
+
+        layout.addWidget(title)
+        layout.addWidget(
+            self.line_usage_information_label
+        )
+        layout.addWidget(
+            self.line_usage_table
+        )
+        layout.addWidget(
+            self.line_usage_apply_button
+        )
+
+        return frame
+
+    def load_line_usage_review(
+        self,
+        *,
+        analysis_result: dict,
+        invoice_data: dict,
+        company: dict,
+    ) -> None:
+        """
+        Belirsiz kalemleri inceleme kartına yükler.
+        """
+
+        self.voucher_data = None
+        self.validation_result = {}
+
+        self.line_usage_review_data = dict(
+            analysis_result or {}
+        )
+        self.line_usage_review_invoice = dict(
+            invoice_data or {}
+        )
+        self.line_usage_review_company = dict(
+            company or {}
+        )
+
+        review_data = analysis_result.get(
+            "line_usage_review",
+            {},
+        )
+
+        unresolved_lines = list(
+            review_data.get(
+                "unresolved_lines",
+                [],
+            )
+        )
+
+        self.line_usage_combo_boxes = []
+        self.line_usage_table.clearContents()
+        self.line_usage_table.setRowCount(
+            len(unresolved_lines)
+        )
+
+        usage_options = [
+            ("Seçiniz", ""),
+            (
+                "Üretimde kullanılacak",
+                "production_material",
+            ),
+            (
+                "Yeniden satılacak",
+                "resale_goods",
+            ),
+            (
+                "Hizmet üretiminde kullanılacak",
+                "service_production",
+            ),
+            (
+                "Pazarlama / satış gideri",
+                "selling_expense",
+            ),
+            (
+                "Genel yönetim gideri",
+                "administrative_expense",
+            ),
+            (
+                "Duran varlık adayı",
+                "fixed_asset",
+            ),
+        ]
+
+        for row, line in enumerate(
+            unresolved_lines
+        ):
+            description = str(
+                line.get(
+                    "description",
+                    "",
+                )
+                or "Açıklamasız kalem"
+            )
+
+            amount = str(
+                line.get(
+                    "amount",
+                    "",
+                )
+            ).strip()
+
+            reason = str(
+                line.get(
+                    "reason",
+                    "",
+                )
+            ).strip()
+
+            display_text = description
+
+            if amount:
+                display_text += (
+                    "\nTutar: "
+                    f"{self.format_amount(amount)}"
+                )
+
+            if reason:
+                display_text += (
+                    f"\n{reason}"
+                )
+
+            self.line_usage_table.setItem(
+                row,
+                0,
+                QTableWidgetItem(
+                    display_text
+                ),
+            )
+
+            combo = QComboBox()
+
+            for option_name, usage_code in (
+                usage_options
+            ):
+                combo.addItem(
+                    option_name,
+                    usage_code,
+                )
+
+            combo.setProperty(
+                "line_index",
+                row,
+            )
+            combo.setProperty(
+                "line_number",
+                line.get(
+                    "line_number",
+                    "",
+                ),
+            )
+            combo.setProperty(
+                "description",
+                description,
+            )
+
+            self.line_usage_table.setCellWidget(
+                row,
+                1,
+                combo,
+            )
+
+            self.line_usage_combo_boxes.append(
+                combo
+            )
+
+        invoice_number = (
+            invoice_data.get(
+                "invoice_number",
+                "-",
+            )
+            or "-"
+        )
+
+        invoice_date = (
+            invoice_data.get(
+                "invoice_date",
+                "-",
+            )
+            or "-"
+        )
+
+        counterparty = (
+            invoice_data.get(
+                "seller_name",
+                invoice_data.get(
+                    "buyer_name",
+                    "-",
+                ),
+            )
+            or "-"
+        )
+
+        self.document_number_label.setText(
+            f"Belge No: {invoice_number}"
+        )
+        self.document_date_label.setText(
+            f"Tarih: {invoice_date}"
+        )
+        self.transaction_label.setText(
+            "İşlem: Kalem incelemesi gerekli"
+        )
+        self.counterparty_label.setText(
+            f"Cari: {counterparty}"
+        )
+
+        self.voucher_table.setRowCount(0)
+
+        self.debit_total_label.setText(
+            "Borç: 0,00"
+        )
+        self.credit_total_label.setText(
+            "Alacak: 0,00"
+        )
+        self.balance_status_label.setText(
+            "⚠ Fiş Oluşturulmadı"
+        )
+
+        self.rule_label.setText(
+            "Uygulanan kural: "
+            "Kullanım amacı güvenlik kontrolü"
+        )
+        self.confidence_label.setText(
+            "Güven oranı: Kesinleştirilemedi"
+        )
+        self.reason_label.setText(
+            "Gerekçe: Kullanım amacı belirlenmeden "
+            "muhasebe hesabı seçilemez."
+        )
+
+        findings = (
+            list(
+                analysis_result.get(
+                    "errors",
+                    [],
+                )
+            )
+            + list(
+                analysis_result.get(
+                    "warnings",
+                    [],
+                )
+            )
+        )
+
+        self.findings_label.setText(
+            "\n".join(
+                f"• {message}"
+                for message in findings
+            )
+            if findings
+            else (
+                "Kullanım amacı seçimi bekleniyor."
+            )
+        )
+
+        self.line_usage_information_label.setText(
+            f"{len(unresolved_lines)} fatura "
+            "kalemi için kullanım amacı seçilmelidir."
+        )
+
+        self.line_usage_review_card.setVisible(
+            True
+        )
+
+        self.header_status_label.setText(
+            "● Kullanım Amacı Bekliyor"
+        )
+        self.status_label.setText(
+            "Durum: Fatura kalemleri "
+            "kullanıcı incelemesi bekliyor"
+        )
+
+        self.approve_button.setEnabled(False)
+
+    def submit_line_usage_review(
+        self,
+    ) -> None:
+        """
+        Kullanım amacı seçimlerini dışarı gönderir.
+        """
+
+        selections = []
+
+        for combo in self.line_usage_combo_boxes:
+            usage_code = str(
+                combo.currentData()
+                or ""
+            ).strip()
+
+            if not usage_code:
+                QMessageBox.warning(
+                    self,
+                    "Eksik Seçim",
+                    "Bütün kalemler için kullanım "
+                    "amacı seçilmelidir.",
+                )
+                return
+
+            selections.append({
+                "line_index": int(
+                    combo.property(
+                        "line_index"
+                    )
+                ),
+                "line_number": (
+                    combo.property(
+                        "line_number"
+                    )
+                ),
+                "description": str(
+                    combo.property(
+                        "description"
+                    )
+                    or ""
+                ),
+                "usage": usage_code,
+            })
+
+        self.line_usage_review_submitted.emit({
+            "selections": selections,
+            "invoice_data": dict(
+                self.line_usage_review_invoice
+            ),
+            "company": dict(
+                self.line_usage_review_company
+            ),
+            "analysis_result": dict(
+                self.line_usage_review_data
+            ),
+        })
 
     def create_legal_basis_card(self) -> QFrame:
         frame = self.create_information_card()
@@ -918,6 +1371,14 @@ class AccountingPage(QWidget):
         """
         MSV fişini ve doğrulama sonucunu ekrana yükler.
         """
+
+        if hasattr(
+            self,
+            "line_usage_review_card",
+        ):
+            self.line_usage_review_card.setVisible(
+                False
+            )
 
         self.voucher_data = voucher_data
         self.validation_result = (

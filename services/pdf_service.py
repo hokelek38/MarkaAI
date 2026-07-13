@@ -4,12 +4,23 @@ from pathlib import Path
 
 import pymupdf
 
+from services.invoice_line_service import InvoiceLineService
+from services.telecom_invoice_service import TelecomInvoiceService
+
 
 class PdfService:
     """
     PDF dosyalarını okur ve e-fatura metinlerinden
     bir veya birden fazla faturayı ayırarak analiz eder.
     """
+
+    def __init__(self):
+        self.invoice_line_service = (
+            InvoiceLineService()
+        )
+        self.telecom_invoice_service = (
+            TelecomInvoiceService()
+        )
 
     def read_pages(self, pdf_path: str) -> list[str]:
         """
@@ -341,7 +352,11 @@ class PdfService:
             ],
         )
 
-        return {
+        line_items = (
+            self.invoice_line_service.parse(text)
+        )
+
+        invoice_result = {
             "file_name": file_name,
             "invoice_index": invoice_index,
             "invoice_count": invoice_count,
@@ -351,6 +366,8 @@ class PdfService:
             "page_range": self._format_page_range(
                 page_numbers
             ),
+            "line_items": line_items,
+            "line_item_count": len(line_items),
             "invoice_number": invoice_number,
             "invoice_date": invoice_date,
             "invoice_type": self._find_first_value(
@@ -414,6 +431,252 @@ class PdfService:
             ),
             "raw_text": text,
         }
+
+        try:
+            telecom_result = (
+                self.telecom_invoice_service.analyze(
+                    invoice_data=invoice_result,
+                    raw_text=text,
+                )
+            )
+
+        except Exception as error:
+            telecom_result = {
+                "recognized": False,
+                "posting_blocked": True,
+                "blocking_errors": [
+                    str(error)
+                ],
+            }
+
+            invoice_result[
+                "telecom_reader_error"
+            ] = str(error)
+
+        if telecom_result.get(
+            "recognized",
+            False,
+        ):
+            amounts = telecom_result.get(
+                "amounts",
+                {},
+            )
+
+            service_base = str(
+                amounts.get(
+                    "service_expense_base",
+                    "0.00",
+                )
+            )
+
+            vat_amount = str(
+                amounts.get(
+                    "vat_amount",
+                    "0.00",
+                )
+            )
+
+            vat_rate = str(
+                amounts.get(
+                    "vat_rate",
+                    "0.00",
+                )
+            )
+
+            oiv_amount = str(
+                amounts.get(
+                    "oiv_amount",
+                    "0.00",
+                )
+            )
+
+            oiv_rate = str(
+                amounts.get(
+                    "oiv_rate",
+                    "0.00",
+                )
+            )
+
+            oiv_base = str(
+                amounts.get(
+                    "oiv_base",
+                    "0.00",
+                )
+            )
+
+            payable_total = str(
+                amounts.get(
+                    "payable_total",
+                    "0.00",
+                )
+            )
+
+            invoice_total = str(
+                amounts.get(
+                    "total_invoice_amount",
+                    "0.00",
+                )
+            )
+
+            if invoice_total in {
+                "",
+                "0",
+                "0.00",
+            }:
+                invoice_total = payable_total
+
+            invoice_result[
+                "original_line_items"
+            ] = list(
+                invoice_result.get(
+                    "line_items",
+                    [],
+                )
+            )
+
+            description = (
+                telecom_result.get(
+                    "service_type",
+                    "",
+                )
+                or
+                "İnternet / telekomünikasyon hizmeti"
+            )
+
+            invoice_result["line_items"] = [
+                {
+                    "line_number": 1,
+                    "description": description,
+                    "quantity": "1.00",
+                    "unit": "HİZMET",
+                    "unit_price": service_base,
+                    "vat_rate": vat_rate,
+                    "tax_base": service_base,
+                    "line_total": service_base,
+                    "calculated_total": service_base,
+                    "calculation_matches": True,
+                    "source": (
+                        "telecom_invoice_service"
+                    ),
+                }
+            ]
+
+            invoice_result[
+                "line_item_count"
+            ] = 1
+
+            invoice_result[
+                "tax_base_amount"
+            ] = f"{service_base} TL"
+
+            invoice_result[
+                "accounting_base_amount"
+            ] = f"{service_base} TL"
+
+            invoice_result[
+                "subtotal"
+            ] = f"{service_base} TL"
+
+            invoice_result[
+                "vat_amount"
+            ] = f"{vat_amount} TL"
+
+            invoice_result[
+                "total_amount"
+            ] = f"{invoice_total} TL"
+
+            invoice_result[
+                "payable_amount"
+            ] = f"{payable_total} TL"
+
+            invoice_result[
+                "special_communication_tax"
+            ] = f"{oiv_amount} TL"
+
+            invoice_result[
+                "oiv_amount"
+            ] = f"{oiv_amount} TL"
+
+            invoice_result[
+                "oiv_rate"
+            ] = oiv_rate
+
+            invoice_result[
+                "oiv_base"
+            ] = f"{oiv_base} TL"
+
+            invoice_result[
+                "document_category"
+            ] = "telecom"
+
+            invoice_result[
+                "document_scenario_hint"
+            ] = "TELECOM_INVOICE"
+
+            invoice_result[
+                "tax_scenario"
+            ] = "telecom_with_oiv"
+
+            invoice_result[
+                "telecom_analysis"
+            ] = telecom_result
+
+            invoice_result[
+                "telecom_validation_blocked"
+            ] = telecom_result.get(
+                "posting_blocked",
+                True,
+            )
+
+            telecom_invoice_number = (
+                telecom_result.get(
+                    "invoice_number",
+                    "",
+                )
+            )
+
+            if telecom_invoice_number:
+                invoice_result[
+                    "invoice_number"
+                ] = telecom_invoice_number
+
+            telecom_invoice_date = (
+                telecom_result.get(
+                    "invoice_date",
+                    "",
+                )
+            )
+
+            if telecom_invoice_date:
+                invoice_result[
+                    "invoice_date"
+                ] = telecom_invoice_date
+
+            provider_name = (
+                telecom_result.get(
+                    "provider_name",
+                    "",
+                )
+            )
+
+            if provider_name:
+                invoice_result[
+                    "seller_name"
+                ] = provider_name
+
+            provider_tax_number = (
+                telecom_result.get(
+                    "provider_tax_number",
+                    "",
+                )
+            )
+
+            if provider_tax_number:
+                invoice_result[
+                    "seller_tax_number"
+                ] = provider_tax_number
+
+        return invoice_result
 
     def _find_tax_base_amount(
         self,

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
@@ -28,6 +29,7 @@ class PdfPage(QWidget):
     """
 
     analysis_ready = Signal(object, object)
+    analysis_review_required = Signal(object, object, object)
 
     def __init__(self):
         super().__init__()
@@ -639,6 +641,35 @@ class PdfPage(QWidget):
             )
 
             if not result.get("success"):
+                line_usage_review = (
+                    result.get(
+                        "line_usage_review",
+                        {},
+                    )
+                    or {}
+                )
+
+                unresolved_lines = list(
+                    line_usage_review.get(
+                        "unresolved_lines",
+                        [],
+                    )
+                )
+
+                if (
+                    line_usage_review.get(
+                        "blocked",
+                        False,
+                    )
+                    and unresolved_lines
+                ):
+                    self.analysis_review_required.emit(
+                        result,
+                        dict(self.invoice_data),
+                        dict(company),
+                    )
+                    return
+
                 errors = result.get(
                     "errors",
                     [
@@ -680,6 +711,299 @@ class PdfPage(QWidget):
             )
             self.analyze_button.setEnabled(
                 self.invoice_data is not None
+            )
+
+    def apply_line_usage_review(
+        self,
+        payload: dict,
+    ) -> None:
+        """
+        Seçilen kullanım amaçlarını fatura
+        kalemlerine uygular ve yeniden analiz eder.
+        """
+
+        try:
+            if not isinstance(payload, dict):
+                raise ValueError(
+                    "Kullanım amacı seçim verisi geçersiz."
+                )
+
+            invoice_data = deepcopy(
+                payload.get(
+                    "invoice_data",
+                    {},
+                )
+            )
+
+            company = deepcopy(
+                payload.get(
+                    "company",
+                    {},
+                )
+            )
+
+            selections = list(
+                payload.get(
+                    "selections",
+                    [],
+                )
+            )
+
+            line_items = [
+                dict(line_item)
+                for line_item in invoice_data.get(
+                    "line_items",
+                    [],
+                )
+                if isinstance(line_item, dict)
+            ]
+
+            if not selections:
+                raise ValueError(
+                    "Uygulanacak kullanım amacı "
+                    "seçimi bulunamadı."
+                )
+
+            if not line_items:
+                raise ValueError(
+                    "Faturada güncellenecek "
+                    "kalem bulunamadı."
+                )
+
+            matched_indexes = set()
+
+            for selection in selections:
+                usage_code = str(
+                    selection.get(
+                        "usage",
+                        "",
+                    )
+                ).strip()
+
+                if not usage_code:
+                    raise ValueError(
+                        "Kullanım amacı boş bırakılamaz."
+                    )
+
+                if usage_code == "fixed_asset":
+                    QMessageBox.information(
+                        self,
+                        "Duran Varlık Hesabı",
+                        (
+                            "Duran varlık için 252, 253, "
+                            "254 veya 255 hesaplarından "
+                            "uygun olanı ayrıca seçilmelidir."
+                            "\n\n"
+                            "Duran varlık hesap seçim "
+                            "ekranını sonraki aşamada "
+                            "ekleyeceğiz."
+                        ),
+                    )
+                    return
+
+                line_number = selection.get(
+                    "line_number",
+                    "",
+                )
+
+                description = str(
+                    selection.get(
+                        "description",
+                        "",
+                    )
+                ).strip()
+
+                selected_index = None
+
+                # Önce satır numarasıyla eşleştir.
+                if line_number not in {
+                    None,
+                    "",
+                }:
+                    for index, line_item in enumerate(
+                        line_items
+                    ):
+                        if index in matched_indexes:
+                            continue
+
+                        current_line_number = (
+                            line_item.get(
+                                "line_number",
+                                "",
+                            )
+                        )
+
+                        if (
+                            str(current_line_number)
+                            == str(line_number)
+                        ):
+                            selected_index = index
+                            break
+
+                # Satır numarası bulunmazsa
+                # açıklamayla eşleştir.
+                if selected_index is None:
+                    for index, line_item in enumerate(
+                        line_items
+                    ):
+                        if index in matched_indexes:
+                            continue
+
+                        current_description = str(
+                            line_item.get(
+                                "description",
+                                "",
+                            )
+                        ).strip()
+
+                        if (
+                            current_description
+                            == description
+                        ):
+                            selected_index = index
+                            break
+
+                if selected_index is None:
+                    raise ValueError(
+                        (
+                            "Kullanım amacı seçilen "
+                            "fatura kalemi asıl faturada "
+                            "bulunamadı:\n"
+                            f"{description or line_number}"
+                        )
+                    )
+
+                line_items[selected_index][
+                    "user_selected_usage"
+                ] = usage_code
+
+                line_items[selected_index][
+                    "usage_confirmation_source"
+                ] = "accounting_page"
+
+                line_items[selected_index][
+                    "usage_confirmed_by_user"
+                ] = True
+
+                matched_indexes.add(
+                    selected_index
+                )
+
+            invoice_data["line_items"] = (
+                line_items
+            )
+
+            self.invoice_data = invoice_data
+
+            company_id = str(
+                company.get(
+                    "company_id",
+                    self.company_id,
+                )
+                or self.company_id
+            )
+
+            document_direction = (
+                self._detect_document_direction(
+                    company
+                )
+            )
+
+            result = (
+                self.decision_engine.process_invoice(
+                    invoice_data=invoice_data,
+                    company=company,
+                    company_id=company_id,
+                    document_direction=(
+                        document_direction
+                    ),
+                    context={},
+                )
+            )
+
+            if result.get(
+                "success",
+                False,
+            ):
+                voucher_data = result.get(
+                    "voucher"
+                )
+
+                validation_result = (
+                    result.get(
+                        "validation"
+                    )
+                    or {}
+                )
+
+                if not voucher_data:
+                    raise ValueError(
+                        "Yeniden analiz sonucunda "
+                        "geçerli muhasebe fişi oluşmadı."
+                    )
+
+                self.analysis_ready.emit(
+                    voucher_data,
+                    validation_result,
+                )
+                return
+
+            line_usage_review = (
+                result.get(
+                    "line_usage_review",
+                    {},
+                )
+                or {}
+            )
+
+            unresolved_lines = list(
+                line_usage_review.get(
+                    "unresolved_lines",
+                    [],
+                )
+            )
+
+            if (
+                line_usage_review.get(
+                    "blocked",
+                    False,
+                )
+                and unresolved_lines
+            ):
+                self.analysis_review_required.emit(
+                    result,
+                    invoice_data,
+                    company,
+                )
+                return
+
+            errors = list(
+                result.get(
+                    "errors",
+                    [
+                        "Yeniden muhasebe analizi "
+                        "oluşturulamadı."
+                    ],
+                )
+            )
+
+            raise ValueError(
+                "\n".join(
+                    str(error)
+                    for error in errors
+                )
+            )
+
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Yeniden Analiz Hatası",
+                (
+                    "Kullanım amacı seçimleri "
+                    "uygulanırken bir hata oluştu:"
+                    "\n\n"
+                    f"{error}"
+                ),
             )
 
     def _detect_document_direction(

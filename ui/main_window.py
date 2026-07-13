@@ -142,6 +142,13 @@ class MainWindow(QMainWindow):
         self.pdf_page.analysis_ready.connect(
             self.show_accounting_analysis
         )
+        self.pdf_page.analysis_review_required.connect(
+            self.show_accounting_review
+        )
+
+        self.accounting_page.line_usage_review_submitted.connect(
+            self.pdf_page.apply_line_usage_review
+        )
 
         if hasattr(
             self.home_page,
@@ -335,6 +342,37 @@ class MainWindow(QMainWindow):
         self.pages.setCurrentWidget(
             target_page
         )
+
+    def show_accounting_review(
+        self,
+        analysis_result: dict,
+        invoice_data: dict,
+        company: dict,
+    ):
+        """
+        Kullanım amacı belirlenemeyen fatura
+        kalemlerini Muhasebe Analizi ekranında açar.
+        """
+
+        try:
+            self.accounting_page.load_line_usage_review(
+                analysis_result=analysis_result,
+                invoice_data=invoice_data,
+                company=company,
+            )
+
+            self.pages.setCurrentWidget(
+                self.accounting_page
+            )
+
+        except Exception as error:
+            QMessageBox.critical(
+                self,
+                "Kalem İnceleme Hatası",
+                "Fatura kalemleri inceleme "
+                "ekranında gösterilemedi:\n\n"
+                f"{error}",
+            )
 
     def show_accounting_analysis(
         self,
